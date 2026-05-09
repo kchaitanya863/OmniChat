@@ -1,0 +1,135 @@
+using OmniChat.Core.Models;
+using OmniChat.Core.Services;
+
+namespace OmniChat.Core.Tests;
+
+public sealed class ChunkingTests
+{
+    [Fact]
+    public void Chunk_CreatesOverlappingChunks_WhenInputIsLong()
+    {
+        var input = string.Join(' ', Enumerable.Range(1, 30).Select(static i => $"word{i}"));
+        var sut = new TextChunker();
+
+        var chunks = sut.Chunk(input, maxWordsPerChunk: 10, overlapWords: 2);
+
+        Assert.Equal(4, chunks.Count);
+        Assert.Contains("word9", chunks[1]);
+        Assert.Contains("word10", chunks[1]);
+    }
+}
+
+public sealed class TokenBudgetTests
+{
+    [Fact]
+    public void FitToBudget_KeepsMostRecentMessagesWithinBudget()
+    {
+        var now = DateTimeOffset.UtcNow;
+        var messages = new List<ChatMessage>
+        {
+            new("user", "old old old old old", now.AddMinutes(-3)),
+            new("assistant", "middle middle middle middle middle", now.AddMinutes(-2)),
+            new("user", "latest latest latest latest latest", now.AddMinutes(-1))
+        };
+
+        var limited = TokenBudgetManager.FitToBudget(messages, tokenBudget: 13);
+
+        Assert.Equal(2, limited.Count);
+        Assert.StartsWith("… ", limited[0].Content, StringComparison.Ordinal);
+        Assert.Equal("latest latest latest latest latest", limited[1].Content);
+    }
+
+    [Fact]
+    public void FitToBudget_IncludesTruncatedMostRecentMessage_WhenNothingFitsFully()
+    {
+        var now = DateTimeOffset.UtcNow;
+        var messages = new List<ChatMessage>
+        {
+            new("user", "alpha beta gamma delta epsilon zeta eta theta", now)
+        };
+
+        var limited = TokenBudgetManager.FitToBudget(messages, tokenBudget: 2);
+
+        Assert.Single(limited);
+        Assert.StartsWith("… ", limited[0].Content, StringComparison.Ordinal);
+    }
+}
+
+public sealed class SseParserTests
+{
+    [Fact]
+    public void ParseDataPayloads_ParsesMultiLineEvents_AndSkipsDone()
+    {
+        var sse = """
+                  : keepalive
+                  event: message
+                  data: {"delta":"Hel"}
+                  data: {"delta":"lo"}
+
+                  data: [DONE]
+
+                  data: {"delta":"World"}
+
+                  """;
+
+        var sut = new SseStreamParser();
+
+        var payloads = sut.ParseDataPayloads(sse);
+
+        Assert.Equal(2, payloads.Count);
+        Assert.Equal("{\"delta\":\"Hel\"}\n{\"delta\":\"lo\"}", payloads[0]);
+        Assert.Equal("{\"delta\":\"World\"}", payloads[1]);
+    }
+}
+
+public sealed class RagIndexerTests
+{
+    [Fact]
+    public void RetrieveTopK_ReturnsRelevantChunks()
+    {
+        var chunker = new TextChunker();
+        var embedding = new LocalEmbeddingService();
+        var sut = new RagIndexer(chunker, embedding);
+
+        var doc = "local first privacy byok secure storage. model routing and chat context. on device embeddings and retrieval.";
+        var indexed = sut.IndexDocument("doc-1", doc);
+
+        var top = sut.RetrieveTopK("privacy local storage", indexed, 1);
+
+        Assert.Single(top);
+        Assert.Contains("privacy", top[0].Content, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public void IndexDocument_UsesProvidedChunkSettings()
+    {
+        var chunker = new TextChunker();
+        var embedding = new LocalEmbeddingService();
+        var sut = new RagIndexer(chunker, embedding);
+        var text = string.Join(' ', Enumerable.Range(1, 80).Select(static i => $"token{i}"));
+
+        var focused = sut.IndexDocument("doc-focused", text, maxWordsPerChunk: 20, overlapWords: 5);
+        var broad = sut.IndexDocument("doc-broad", text, maxWordsPerChunk: 40, overlapWords: 10);
+
+        Assert.True(focused.Count > broad.Count);
+    }
+}
+
+public sealed class InMemoryChatRepositoryTests
+{
+    [Fact]
+    public async Task TrimToLatestSessions_RemovesOlderSessions()
+    {
+        var repository = new InMemoryChatRepository();
+        var first = await repository.CreateSessionAsync("First");
+        await repository.AddMessageAsync(first.Id, new ChatMessage("user", "first", DateTimeOffset.UtcNow.AddMinutes(-2)));
+        var second = await repository.CreateSessionAsync("Second");
+        await repository.AddMessageAsync(second.Id, new ChatMessage("user", "second", DateTimeOffset.UtcNow.AddMinutes(-1)));
+
+        var removed = await repository.TrimToLatestSessionsAsync(1);
+        var remaining = await repository.GetSessionsAsync();
+
+        Assert.Equal(1, removed);
+        Assert.Single(remaining);
+    }
+}

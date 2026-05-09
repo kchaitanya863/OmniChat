@@ -18,7 +18,7 @@ from urllib.error import URLError
 
 try:
     from playwright.sync_api import sync_playwright
-except Exception as exc:  # pragma: no cover
+except ImportError as exc:  # pragma: no cover
     print("Playwright is required. Install with: python -m pip install playwright && python -m playwright install chromium")
     raise SystemExit(1) from exc
 

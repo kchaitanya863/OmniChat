@@ -19,6 +19,14 @@ public static class TokenBudgetManager
             var tokens = TokenEstimator.EstimateTokens(message.Content);
             if (consumed + tokens > tokenBudget)
             {
+                var remaining = tokenBudget - consumed;
+                var truncated = TruncateToApproximateTokens(message.Content, remaining);
+                if (truncated is not null)
+                {
+                    stack.Push(message with { Content = truncated });
+                    consumed = tokenBudget;
+                }
+
                 continue;
             }
 
@@ -27,5 +35,28 @@ public static class TokenBudgetManager
         }
 
         return stack.ToArray();
+    }
+
+    private static string? TruncateToApproximateTokens(string content, int maxTokens)
+    {
+        if (maxTokens <= 0 || string.IsNullOrWhiteSpace(content))
+        {
+            return null;
+        }
+
+        var words = content.Split([' ', '\t', '\n', '\r'], StringSplitOptions.RemoveEmptyEntries);
+        if (words.Length == 0)
+        {
+            return null;
+        }
+
+        var keepWords = Math.Max(1, (int)Math.Floor(maxTokens / 1.3));
+        if (keepWords >= words.Length)
+        {
+            return content;
+        }
+
+        var start = words.Length - keepWords;
+        return "… " + string.Join(' ', words, start, keepWords);
     }
 }

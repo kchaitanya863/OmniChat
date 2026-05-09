@@ -64,8 +64,10 @@ app.MapPost("/api/sessions/{sessionId}/messages", async (
     var userMessage = new ChatMessage("user", request.Content.Trim(), DateTimeOffset.UtcNow, request.ProviderId, request.Model);
     await chats.AddMessageAsync(sessionId, userMessage, cancellationToken);
 
+    var contextForReply = TokenBudgetManager.FitToBudget(session.Messages, 220);
     var evidence = await search.SearchAsync(request.Content, cancellationToken);
-    var reply = $"You said: {request.Content}\n\nLocal search context:\n- {string.Join("\n- ", evidence.Select(e => $"{e.Title}: {e.Snippet}"))}";
+    var shortContext = contextForReply.TakeLast(3).Select(static m => $"{m.Role}: {m.Content}");
+    var reply = $"You said: {request.Content}\n\nRecent context window:\n- {string.Join("\n- ", shortContext)}\n\nLocal search context:\n- {string.Join("\n- ", evidence.Select(e => $"{e.Title}: {e.Snippet}"))}";
 
     var assistantMessage = new ChatMessage("assistant", reply, DateTimeOffset.UtcNow, request.ProviderId, request.Model);
     await chats.AddMessageAsync(sessionId, assistantMessage, cancellationToken);

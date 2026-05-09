@@ -34,8 +34,24 @@ public sealed class TokenBudgetTests
 
         var limited = TokenBudgetManager.FitToBudget(messages, tokenBudget: 13);
 
+        Assert.Equal(2, limited.Count);
+        Assert.StartsWith("… ", limited[0].Content, StringComparison.Ordinal);
+        Assert.Equal("latest latest latest latest latest", limited[1].Content);
+    }
+
+    [Fact]
+    public void FitToBudget_IncludesTruncatedMostRecentMessage_WhenNothingFitsFully()
+    {
+        var now = DateTimeOffset.UtcNow;
+        var messages = new List<ChatMessage>
+        {
+            new("user", "alpha beta gamma delta epsilon zeta eta theta", now)
+        };
+
+        var limited = TokenBudgetManager.FitToBudget(messages, tokenBudget: 2);
+
         Assert.Single(limited);
-        Assert.Equal("latest latest latest latest latest", limited[0].Content);
+        Assert.StartsWith("… ", limited[0].Content, StringComparison.Ordinal);
     }
 }
 

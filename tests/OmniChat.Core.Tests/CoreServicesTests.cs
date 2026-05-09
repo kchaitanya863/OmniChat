@@ -99,4 +99,37 @@ public sealed class RagIndexerTests
         Assert.Single(top);
         Assert.Contains("privacy", top[0].Content, StringComparison.OrdinalIgnoreCase);
     }
+
+    [Fact]
+    public void IndexDocument_UsesProvidedChunkSettings()
+    {
+        var chunker = new TextChunker();
+        var embedding = new LocalEmbeddingService();
+        var sut = new RagIndexer(chunker, embedding);
+        var text = string.Join(' ', Enumerable.Range(1, 80).Select(static i => $"token{i}"));
+
+        var focused = sut.IndexDocument("doc-focused", text, maxWordsPerChunk: 20, overlapWords: 5);
+        var broad = sut.IndexDocument("doc-broad", text, maxWordsPerChunk: 40, overlapWords: 10);
+
+        Assert.True(focused.Count > broad.Count);
+    }
+}
+
+public sealed class InMemoryChatRepositoryTests
+{
+    [Fact]
+    public async Task TrimToLatestSessions_RemovesOlderSessions()
+    {
+        var repository = new InMemoryChatRepository();
+        var first = await repository.CreateSessionAsync("First");
+        await repository.AddMessageAsync(first.Id, new ChatMessage("user", "first", DateTimeOffset.UtcNow.AddMinutes(-2)));
+        var second = await repository.CreateSessionAsync("Second");
+        await repository.AddMessageAsync(second.Id, new ChatMessage("user", "second", DateTimeOffset.UtcNow.AddMinutes(-1)));
+
+        var removed = await repository.TrimToLatestSessionsAsync(1);
+        var remaining = await repository.GetSessionsAsync();
+
+        Assert.Equal(1, removed);
+        Assert.Single(remaining);
+    }
 }

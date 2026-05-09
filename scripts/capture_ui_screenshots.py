@@ -66,6 +66,7 @@ def capture(base_url: str, output_dir: Path, session_title: str, prompt: str, mo
     output_dir.mkdir(parents=True, exist_ok=True)
 
     home = output_dir / "ui-home.png"
+    controls = output_dir / "ui-controls.png"
     sessions = output_dir / "ui-sessions.png"
     chat = output_dir / "ui-chat-after-send.png"
 
@@ -75,6 +76,13 @@ def capture(base_url: str, output_dir: Path, session_title: str, prompt: str, mo
 
         page.goto(base_url, wait_until="networkidle")
         page.screenshot(path=str(home), full_page=True)
+
+        page.select_option("#chunkingStrategy", "focused")
+        page.select_option("#storageMode", "managed")
+        page.fill("#keepLatestSessions", "5")
+        page.click("#saveSettingsBtn")
+        page.wait_for_timeout(500)
+        page.screenshot(path=str(controls), full_page=True)
 
         page.fill("#newSessionTitle", session_title)
         page.click("#createSessionBtn")
@@ -89,7 +97,7 @@ def capture(base_url: str, output_dir: Path, session_title: str, prompt: str, mo
 
         browser.close()
 
-    return [home, sessions, chat]
+    return [home, controls, sessions, chat]
 
 
 def main() -> int:

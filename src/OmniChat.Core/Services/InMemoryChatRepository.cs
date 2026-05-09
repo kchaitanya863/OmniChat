@@ -48,4 +48,28 @@ public sealed class InMemoryChatRepository : IChatRepository
 
         throw new KeyNotFoundException($"Chat session '{sessionId}' was not found.");
     }
+
+    public Task<int> DeleteAllSessionsAsync(CancellationToken cancellationToken = default)
+    {
+        var deleted = _sessions.Count;
+        _sessions.Clear();
+        return Task.FromResult(deleted);
+    }
+
+    public async Task<int> TrimToLatestSessionsAsync(int keepLatestCount, CancellationToken cancellationToken = default)
+    {
+        if (keepLatestCount < 0)
+        {
+            throw new ArgumentOutOfRangeException(nameof(keepLatestCount));
+        }
+
+        var sessions = await GetSessionsAsync(cancellationToken);
+        var toDelete = sessions.Skip(keepLatestCount).ToArray();
+        foreach (var session in toDelete)
+        {
+            _sessions.TryRemove(session.Id, out _);
+        }
+
+        return toDelete.Length;
+    }
 }

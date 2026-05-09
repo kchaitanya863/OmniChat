@@ -119,8 +119,16 @@ dotnet run --project src/OmniChat.Web/OmniChat.Web.csproj
 Captured UI test screenshots are available at:
 
 - `docs/screenshots/ui-home.png`
+- `docs/screenshots/ui-controls.png`
 - `docs/screenshots/ui-sessions.png`
 - `docs/screenshots/ui-chat-after-send.png`
+
+Preview:
+
+![OmniChat home](docs/screenshots/ui-home.png)
+![OmniChat controls](docs/screenshots/ui-controls.png)
+![OmniChat sessions](docs/screenshots/ui-sessions.png)
+![OmniChat chat after send](docs/screenshots/ui-chat-after-send.png)
 
 ### Reusable Screenshot Automation
 
@@ -148,3 +156,24 @@ python -m playwright install chromium
 A product-owner style readiness review is tracked in:
 
 - `docs/PRODUCT_OWNER_REVIEW.md`
+
+### Chunking & Storage User Options
+
+The web app now exposes runtime controls for:
+
+- **Chunking strategy**: `focused`, `balanced`, `broad`
+- **Storage mode**: `ephemeral` or `managed`
+- **Retention policy**: keep latest `N` sessions with one-click trim / clear-all actions
+
+Supporting endpoints:
+
+- `GET /api/settings`
+- `POST /api/settings`
+- `GET /api/storage/summary`
+- `POST /api/storage/cleanup`
+
+### Copilot Instructions
+
+Contributor guidance for Copilot and future agent runs is tracked in:
+
+- `.github/copilot-instructions.md`

@@ -11,4 +11,8 @@ public interface IChatRepository
     Task<ChatSession?> GetSessionAsync(string sessionId, CancellationToken cancellationToken = default);
 
     Task AddMessageAsync(string sessionId, ChatMessage message, CancellationToken cancellationToken = default);
+
+    Task<int> DeleteAllSessionsAsync(CancellationToken cancellationToken = default);
+
+    Task<int> TrimToLatestSessionsAsync(int keepLatestCount, CancellationToken cancellationToken = default);
 }

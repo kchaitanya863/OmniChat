@@ -14,11 +14,14 @@ public sealed class RagIndexer
     }
 
     public IReadOnlyList<DocumentChunk> IndexDocument(string documentId, string content)
+        => IndexDocument(documentId, content, maxWordsPerChunk: 120, overlapWords: 20);
+
+    public IReadOnlyList<DocumentChunk> IndexDocument(string documentId, string content, int maxWordsPerChunk, int overlapWords)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(documentId);
         ArgumentException.ThrowIfNullOrWhiteSpace(content);
 
-        var chunks = _chunker.Chunk(content);
+        var chunks = _chunker.Chunk(content, maxWordsPerChunk, overlapWords);
         return chunks
             .Select((chunk, index) => new DocumentChunk(documentId, index, chunk, _embeddingService.Embed(chunk)))
             .ToArray();

@@ -1,0 +1,132 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>OmniChat</title>
+  <style>
+    :root { color-scheme: dark; }
+    body { margin: 0; font-family: Inter, system-ui, sans-serif; background: #0d1117; color: #e6edf3; }
+    .layout { display: grid; grid-template-columns: 320px 1fr; min-height: 100vh; }
+    .sidebar { border-right: 1px solid #30363d; padding: 16px; }
+    .chat { padding: 16px; }
+    .card { background: #161b22; border: 1px solid #30363d; border-radius: 12px; padding: 12px; margin-bottom: 12px; }
+    .session { cursor: pointer; }
+    .session.active { border-color: #58a6ff; }
+    .messages { max-height: 70vh; overflow: auto; display: grid; gap: 8px; }
+    .msg { padding: 10px; border-radius: 10px; white-space: pre-wrap; }
+    .user { background: #1f6feb33; }
+    .assistant { background: #3fb95022; }
+    input, textarea, button { width: 100%; box-sizing: border-box; border-radius: 10px; border: 1px solid #30363d; background: #0d1117; color: #e6edf3; padding: 10px; }
+    button { cursor: pointer; background: #1f6feb; border: none; font-weight: 600; }
+    .row { display: grid; grid-template-columns: 1fr auto; gap: 8px; }
+    .meta { font-size: 12px; color: #8b949e; margin-top: 4px; }
+    .heading { font-weight: 700; margin-bottom: 8px; }
+  </style>
+</head>
+<body>
+  <div class="layout">
+    <aside class="sidebar">
+      <div class="heading">OmniChat Sessions</div>
+      <div class="card">
+        <input id="newSessionTitle" placeholder="Session title" value="New Session" />
+        <button id="createSessionBtn" style="margin-top: 8px;">Create Session</button>
+      </div>
+      <div id="sessions"></div>
+    </aside>
+    <main class="chat">
+      <div class="heading">Chat</div>
+      <div class="card">
+        <div id="messages" class="messages"></div>
+      </div>
+      <div class="card">
+        <textarea id="prompt" rows="4" placeholder="Type your prompt..."></textarea>
+        <div class="row" style="margin-top: 8px;">
+          <input id="model" placeholder="Model (e.g. gpt-4.1-mini)" value="demo-local-model" />
+          <button id="sendBtn">Send</button>
+        </div>
+      </div>
+    </main>
+  </div>
+  <script>
+    let selectedSessionId = null;
+
+    async function loadSessions() {
+      const sessions = await fetch('/api/sessions').then(r => r.json());
+      const container = document.getElementById('sessions');
+      container.innerHTML = '';
+
+      sessions.forEach(session => {
+        const card = document.createElement('div');
+        card.className = 'card session' + (session.id === selectedSessionId ? ' active' : '');
+        card.innerHTML = `<div><strong>${session.title}</strong></div><div class="meta">${session.messageCount} messages</div>`;
+        card.onclick = async () => {
+          selectedSessionId = session.id;
+          await loadSessions();
+          await loadSession(session.id);
+        };
+        container.appendChild(card);
+      });
+
+      if (!selectedSessionId && sessions.length > 0) {
+        selectedSessionId = sessions[0].id;
+        await loadSession(selectedSessionId);
+      }
+    }
+
+    async function loadSession(id) {
+      const session = await fetch(`/api/sessions/${id}`).then(r => r.json());
+      const messages = document.getElementById('messages');
+      messages.innerHTML = '';
+
+      session.messages.forEach(msg => {
+        const div = document.createElement('div');
+        div.className = `msg ${msg.role === 'assistant' ? 'assistant' : 'user'}`;
+        div.innerHTML = `<div><strong>${msg.role}</strong></div><div>${msg.content}</div><div class="meta">${new Date(msg.timestamp).toLocaleString()}</div>`;
+        messages.appendChild(div);
+      });
+
+      messages.scrollTop = messages.scrollHeight;
+    }
+
+    document.getElementById('createSessionBtn').onclick = async () => {
+      const title = document.getElementById('newSessionTitle').value.trim() || 'New Session';
+      const response = await fetch('/api/sessions', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ title })
+      }).then(r => r.json());
+
+      selectedSessionId = response.id;
+      await loadSessions();
+      await loadSession(selectedSessionId);
+    };
+
+    document.getElementById('sendBtn').onclick = async () => {
+      if (!selectedSessionId) {
+        return;
+      }
+
+      const promptEl = document.getElementById('prompt');
+      const content = promptEl.value.trim();
+      if (!content) {
+        return;
+      }
+
+      const model = document.getElementById('model').value.trim() || 'demo-local-model';
+
+      await fetch(`/api/sessions/${selectedSessionId}/messages`, {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ content, providerId: 'local-byok', model })
+      });
+
+      promptEl.value = '';
+      await loadSessions();
+      await loadSession(selectedSessionId);
+    };
+
+    loadSessions();
+  </script>
+</body>
+</html>

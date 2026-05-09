@@ -100,4 +100,16 @@ OmniChat is a premium cross-platform mobile app that provides a unified, privacy
 ---
 
 ## Repository Status
-This repository currently tracks the OmniChat master plan and architecture baseline. Implementation artifacts (MAUI app projects, tests, and CI jobs) should be added in subsequent milestones while preserving the local-first and BYOK guarantees defined above.
+This repository now includes an initial implementation baseline:
+
+- `src/OmniChat.Core`: core local-first chat, token budgeting, SSE parsing, chunking, lightweight local embedding, and RAG retrieval primitives.
+- `src/OmniChat.Web`: lightweight web UI and API surface demonstrating local-first chat/session management plus RAG index/retrieve endpoints.
+- `tests/OmniChat.Core.Tests`: automated tests for chunking behavior, token budgeting, SSE parser resilience, and retrieval relevance.
+
+### Run Locally
+
+```bash
+dotnet build OmniChat.slnx
+dotnet test OmniChat.slnx
+dotnet run --project /home/runner/work/OmniChat/OmniChat/src/OmniChat.Web/OmniChat.Web.csproj
+```

@@ -1,1 +1,103 @@
 # OmniChat
+
+## Master Product & Architecture Plan (Local-First BYOK AI Client)
+
+### 1) Executive Summary
+OmniChat is a premium cross-platform mobile app that provides a unified, privacy-first chat client for LLMs. Users bring their own provider credentials (OpenAI, Anthropic, Azure OpenAI, GCP Vertex AI, AWS Bedrock, Groq, and custom endpoints). Chat history, documents, embeddings, and search execution remain local-first on device, with provider APIs used only when users send prompts.
+
+### 2) Core Product Capabilities
+- **Provider-agnostic routing** with per-message model/vendor switching inside the composer.
+- **High-polish UI/UX** with smooth transitions, haptics, shimmer/loading states, and native-feeling controls.
+- **100% local storage by default** for chats, prompts, imported docs, and vector index.
+- **On-device RAG pipeline** for PDF/DOCX/TXT ingestion, chunking, embedding, and retrieval.
+- **Local web search agent** powered by user-configured search providers and local HTML extraction.
+- **MCP integration** to standardize local tool exposure (search, retrieval, vault access).
+- **Conversational experience** with SSE streaming, markdown rendering, syntax highlighting, and branchable histories.
+
+### 3) Users & Personas
+- **Privacy Advocate**: Wants strict local data ownership and transparent controls.
+- **Power User / Developer**: Needs fast model switching across providers and cost/performance optimization.
+
+### 4) Key User Journeys
+#### A. Onboarding & Key Setup
+1. Animated intro carousel: *Your Data, Your Device* → *Bring Your Own Key* → *Local Superpowers*.
+2. Empty-state chat opens immediately.
+3. Inline provider sheet from composer icon for API key or custom endpoint setup.
+4. Secure key storage and silent key validation before enabling send.
+
+#### B. Core Chat + MCP Web Search
+1. User sends prompt.
+2. LLM receives MCP tool schema and may call `local_web_search`.
+3. UI shows animated status indicator for active tool execution.
+4. Device executes search + scraping locally and appends context.
+5. Final answer streams with citations.
+
+#### C. Local Document Ingestion + RAG
+1. User selects file attachment.
+2. Progress states: extract → chunk → embed → save.
+3. Document appears as attached context pill.
+4. Query embedding + local vector similarity retrieval performed on device.
+5. LLM response cites relevant passages.
+
+#### D. Dynamic Vendor Switching at Prompt Time
+1. User taps active model in input bar.
+2. Dropdown allows model change or inline provider addition.
+3. New provider becomes active without leaving chat context.
+
+#### E. Privacy, Storage & Export
+1. Data & Storage dashboard visualizes local usage by category.
+2. User can remove selected embeddings/chats.
+3. Export all data as JSON via native share sheet.
+
+### 5) Technology Stack
+- **App Framework**: .NET MAUI (single C#/XAML codebase, native iOS/Android output)
+- **Premium UI Components**: Telerik UI for MAUI or Syncfusion
+- **Local relational data**: SQLite (`sqlite-net` or EF Core for SQLite)
+- **Local vector retrieval**: `sqlite-vec` (or equivalent local vector store)
+- **On-device embeddings**: ONNX Runtime (`Microsoft.ML.OnnxRuntime`)
+- **Secure key storage**: `Microsoft.Maui.Storage.SecureStorage`
+- **Testing**: xUnit, Moq, Appium, Applitools/Percy
+
+### 6) On-Device RAG Architecture
+1. **Parse** imported documents to text.
+2. **Chunk** with recursive splitter (~500–1000 tokens, 10–15% overlap).
+3. **Embed locally** through ONNX model.
+4. **Store** chunk + vector locally.
+5. **Retrieve** by cosine similarity and inject top-k context.
+
+### 7) Local Web Search Agent Execution
+1. Model decides tool invocation via MCP schema.
+2. App executes search through user-selected provider (DuckDuckGo/Tavily/Brave/Google PSE).
+3. App fetches links, strips HTML, truncates context, and returns structured evidence.
+4. LLM synthesizes and streams answer with source attribution.
+
+### 8) Provider Integration Notes
+- **OpenAI / Anthropic / Groq / custom REST**: Bearer-token HTTP.
+- **Azure OpenAI**: key + endpoint + deployment name.
+- **GCP Vertex AI**: OAuth/service-account JSON, local token signing.
+- **AWS Bedrock**: AWSSDK Bedrock runtime with SigV4.
+
+### 9) Security, Performance, and Reliability Requirements
+- No telemetry by default and no cloud persistence for local vault data.
+- SSE streaming via `HttpCompletionOption.ResponseHeadersRead` for low-latency token rendering.
+- Background ingestion/vectorization to avoid UI jank and thermal spikes.
+- Local token/context management with summarization fallback for long chats.
+- Robust import/export to prevent lock-in and support data recovery.
+
+### 10) QA & Testing Strategy
+- **Unit tests**: chunking, token accounting, truncation, SSE parser resilience.
+- **Integration tests**: end-to-end RAG pipeline, secure key lifecycle, provider adapters.
+- **UI automation + visual regression**: Appium + Applitools/Percy across iOS/Android device matrix and accessibility scales.
+- **CI gates**: run unit/integration/UI visual checks on PRs before merge.
+
+### 11) Iterative Delivery Milestones
+1. **Core chat foundation + visual identity**
+2. **Dynamic provider ecosystem + secure key workflows**
+3. **MCP tools + local search agent**
+4. **On-device RAG pipeline**
+5. **Polish, haptics, and CI hardening**
+
+---
+
+## Repository Status
+This repository currently tracks the OmniChat master plan and architecture baseline. Implementation artifacts (MAUI app projects, tests, and CI jobs) should be added in subsequent milestones while preserving the local-first and BYOK guarantees defined above.

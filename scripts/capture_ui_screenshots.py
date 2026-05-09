@@ -2,8 +2,8 @@
 """Capture OmniChat UI screenshots with reusable automation.
 
 Usage examples:
-  python /home/runner/work/OmniChat/OmniChat/scripts/capture_ui_screenshots.py
-  python /home/runner/work/OmniChat/OmniChat/scripts/capture_ui_screenshots.py --no-start-server --base-url http://127.0.0.1:5078
+  python scripts/capture_ui_screenshots.py
+  python scripts/capture_ui_screenshots.py --no-start-server --base-url http://127.0.0.1:5078
 """
 
 from __future__ import annotations
@@ -24,16 +24,18 @@ except Exception as exc:  # pragma: no cover
 
 
 def parse_args() -> argparse.Namespace:
+    repo_root = Path(__file__).resolve().parent.parent
+
     parser = argparse.ArgumentParser(description="Capture OmniChat UI screenshots")
     parser.add_argument("--base-url", default="http://127.0.0.1:5078", help="App URL")
     parser.add_argument(
         "--project",
-        default="/home/runner/work/OmniChat/OmniChat/src/OmniChat.Web/OmniChat.Web.csproj",
+        default=str(repo_root / "src/OmniChat.Web/OmniChat.Web.csproj"),
         help="Path to OmniChat web project used when starting local server",
     )
     parser.add_argument(
         "--output-dir",
-        default="/home/runner/work/OmniChat/OmniChat/docs/screenshots",
+        default=str(repo_root / "docs/screenshots"),
         help="Directory where screenshots will be written",
     )
     parser.add_argument("--session-title", default="Screenshot Session", help="Session title used in UI flow")

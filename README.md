@@ -111,29 +111,29 @@ This repository now includes an initial implementation baseline:
 ```bash
 dotnet build OmniChat.slnx
 dotnet test OmniChat.slnx
-dotnet run --project /home/runner/work/OmniChat/OmniChat/src/OmniChat.Web/OmniChat.Web.csproj
+dotnet run --project src/OmniChat.Web/OmniChat.Web.csproj
 ```
 
 ### UI Smoke Test Screenshots
 
 Captured UI test screenshots are available at:
 
-- `/home/runner/work/OmniChat/OmniChat/docs/screenshots/ui-home.png`
-- `/home/runner/work/OmniChat/OmniChat/docs/screenshots/ui-sessions.png`
-- `/home/runner/work/OmniChat/OmniChat/docs/screenshots/ui-chat-after-send.png`
+- `docs/screenshots/ui-home.png`
+- `docs/screenshots/ui-sessions.png`
+- `docs/screenshots/ui-chat-after-send.png`
 
 ### Reusable Screenshot Automation
 
 Use the reusable screenshot automation script to regenerate the UI gallery:
 
 ```bash
-python /home/runner/work/OmniChat/OmniChat/scripts/capture_ui_screenshots.py
+python scripts/capture_ui_screenshots.py
 ```
 
 If you already have the app running, use:
 
 ```bash
-python /home/runner/work/OmniChat/OmniChat/scripts/capture_ui_screenshots.py --no-start-server --base-url http://127.0.0.1:5078
+python scripts/capture_ui_screenshots.py --no-start-server --base-url http://127.0.0.1:5078
 ```
 
 Playwright setup (one-time per environment):
@@ -147,4 +147,4 @@ python -m playwright install chromium
 
 A product-owner style readiness review is tracked in:
 
-- `/home/runner/work/OmniChat/OmniChat/docs/PRODUCT_OWNER_REVIEW.md`
+- `docs/PRODUCT_OWNER_REVIEW.md`

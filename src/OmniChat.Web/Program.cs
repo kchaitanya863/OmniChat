@@ -28,6 +28,11 @@ app.MapGet("/api/sessions", async (IChatRepository chats, CancellationToken canc
 
 app.MapPost("/api/sessions", async (CreateSessionRequest request, IChatRepository chats, CancellationToken cancellationToken) =>
 {
+    if (request is null)
+    {
+        return Results.BadRequest("Request body is required.");
+    }
+
     var session = await chats.CreateSessionAsync(request.Title ?? "New Chat", cancellationToken);
     return Results.Ok(new { session.Id, session.Title });
 });
@@ -76,6 +81,13 @@ app.MapPost("/api/sessions/{sessionId}/messages", async (
 
 app.MapPost("/api/rag/index", (IndexRequest request, RagIndexer indexer) =>
 {
+    if (request is null ||
+        string.IsNullOrWhiteSpace(request.DocumentId) ||
+        string.IsNullOrWhiteSpace(request.Content))
+    {
+        return Results.BadRequest("DocumentId and Content are required.");
+    }
+
     var chunks = indexer.IndexDocument(request.DocumentId, request.Content);
     return Results.Ok(new
     {
@@ -87,6 +99,19 @@ app.MapPost("/api/rag/index", (IndexRequest request, RagIndexer indexer) =>
 
 app.MapPost("/api/rag/retrieve", (RetrieveRequest request, RagIndexer indexer) =>
 {
+    if (request is null ||
+        string.IsNullOrWhiteSpace(request.DocumentId) ||
+        string.IsNullOrWhiteSpace(request.DocumentContent) ||
+        string.IsNullOrWhiteSpace(request.Query))
+    {
+        return Results.BadRequest("DocumentId, DocumentContent, and Query are required.");
+    }
+
+    if (request.TopK <= 0 || request.TopK > 10)
+    {
+        return Results.BadRequest("TopK must be between 1 and 10.");
+    }
+
     var indexed = indexer.IndexDocument(request.DocumentId, request.DocumentContent);
     var matches = indexer.RetrieveTopK(request.Query, indexed, request.TopK);
 

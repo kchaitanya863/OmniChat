@@ -119,4 +119,32 @@ dotnet run --project /home/runner/work/OmniChat/OmniChat/src/OmniChat.Web/OmniCh
 Captured UI test screenshots are available at:
 
 - `/home/runner/work/OmniChat/OmniChat/docs/screenshots/ui-home.png`
+- `/home/runner/work/OmniChat/OmniChat/docs/screenshots/ui-sessions.png`
 - `/home/runner/work/OmniChat/OmniChat/docs/screenshots/ui-chat-after-send.png`
+
+### Reusable Screenshot Automation
+
+Use the reusable screenshot automation script to regenerate the UI gallery:
+
+```bash
+python /home/runner/work/OmniChat/OmniChat/scripts/capture_ui_screenshots.py
+```
+
+If you already have the app running, use:
+
+```bash
+python /home/runner/work/OmniChat/OmniChat/scripts/capture_ui_screenshots.py --no-start-server --base-url http://127.0.0.1:5078
+```
+
+Playwright setup (one-time per environment):
+
+```bash
+python -m pip install playwright
+python -m playwright install chromium
+```
+
+### Product Owner Readiness Review
+
+A product-owner style readiness review is tracked in:
+
+- `/home/runner/work/OmniChat/OmniChat/docs/PRODUCT_OWNER_REVIEW.md`

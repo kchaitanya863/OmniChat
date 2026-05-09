@@ -106,17 +106,17 @@ static async Task EnsureSeedDataAsync(IServiceProvider services)
     using var scope = services.CreateScope();
     var repository = scope.ServiceProvider.GetRequiredService<IChatRepository>();
 
-    var existing = await repository.GetSessionsAsync();
+    var existing = await repository.GetSessionsAsync(CancellationToken.None);
     if (existing.Count > 0)
     {
         return;
     }
 
-    var session = await repository.CreateSessionAsync("Welcome chat");
+    var session = await repository.CreateSessionAsync("Welcome chat", CancellationToken.None);
     await repository.AddMessageAsync(session.Id, new ChatMessage(
         "assistant",
         "Welcome to OmniChat. This baseline implementation stores session data in local process memory and demonstrates local-first flow patterns.",
-        DateTimeOffset.UtcNow));
+        DateTimeOffset.UtcNow), CancellationToken.None);
 }
 
 public sealed record CreateSessionRequest(string? Title);

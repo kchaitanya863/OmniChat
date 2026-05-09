@@ -46,12 +46,22 @@ public sealed class RagIndexer
     private static float CosineSimilarity(IReadOnlyList<float> a, IReadOnlyList<float> b)
     {
         var length = Math.Min(a.Count, b.Count);
-        float sum = 0;
+        float dot = 0;
+        float normA = 0;
+        float normB = 0;
+
         for (var i = 0; i < length; i++)
         {
-            sum += a[i] * b[i];
+            dot += a[i] * b[i];
+            normA += a[i] * a[i];
+            normB += b[i] * b[i];
         }
 
-        return sum;
+        if (normA == 0 || normB == 0)
+        {
+            return 0;
+        }
+
+        return dot / (float)Math.Sqrt(normA * normB);
     }
 }

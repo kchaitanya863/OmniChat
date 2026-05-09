@@ -2,6 +2,8 @@ namespace OmniChat.Core.Services;
 
 public sealed class LocalEmbeddingService
 {
+    // Placeholder deterministic embedding for local/offline baseline behavior.
+    // This can be replaced with an ONNX embedding model in later milestones.
     public IReadOnlyList<float> Embed(string text)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(text);

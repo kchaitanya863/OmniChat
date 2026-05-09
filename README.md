@@ -113,3 +113,10 @@ dotnet build OmniChat.slnx
 dotnet test OmniChat.slnx
 dotnet run --project /home/runner/work/OmniChat/OmniChat/src/OmniChat.Web/OmniChat.Web.csproj
 ```
+
+### UI Smoke Test Screenshots
+
+Captured UI test screenshots are available at:
+
+- `/home/runner/work/OmniChat/OmniChat/docs/screenshots/ui-home.png`
+- `/home/runner/work/OmniChat/OmniChat/docs/screenshots/ui-chat-after-send.png`

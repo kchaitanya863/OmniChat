@@ -47,12 +47,12 @@ public sealed class SseParserTests
         var sse = """
                   : keepalive
                   event: message
-                  data: {\"delta\":\"Hel\"}
-                  data: {\"delta\":\"lo\"}
+                  data: {"delta":"Hel"}
+                  data: {"delta":"lo"}
 
                   data: [DONE]
 
-                  data: {\"delta\":\"World\"}
+                  data: {"delta":"World"}
 
                   """;
 

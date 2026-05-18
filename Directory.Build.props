@@ -1,0 +1,34 @@
+<Project>
+
+  <PropertyGroup>
+    <LangVersion>latest</LangVersion>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+    <WarningsNotAsErrors></WarningsNotAsErrors>
+    <EnableNETAnalyzers>true</EnableNETAnalyzers>
+    <AnalysisLevel>latest</AnalysisLevel>
+    <AnalysisMode>Default</AnalysisMode>
+    <EnforceCodeStyleInBuild>true</EnforceCodeStyleInBuild>
+    <GenerateDocumentationFile>false</GenerateDocumentationFile>
+    <!--
+      Suppress noisy diagnostics that don't add value at this scale:
+      CA1014  CLSCompliant attribute (app, not a public library)
+      CA1054  Uri params as string (chat surface uses many free-form URLs)
+      CA1056  Uri properties as string
+      CA2007  ConfigureAwait (irrelevant for ASP.NET Core)
+      CA1303  Localize strings (not localizing yet)
+      CA1308  ToLowerInvariant over ToUpperInvariant (lower-case keys are conventional here)
+      CA1848  LoggerMessage delegates (overkill at this scale)
+      CA1062  Public param null-checks (records + nullable refs cover us)
+      CA1031  Catch general exception (intentional at HTTP boundary)
+    -->
+    <NoWarn>$(NoWarn);CA1014;CA1054;CA1056;CA2007;CA1303;CA1308;CA1848;CA1062;CA1031</NoWarn>
+  </PropertyGroup>
+
+  <PropertyGroup Condition="'$(IsTestProject)' == 'true'">
+    <!-- Relax style rules in test code -->
+    <NoWarn>$(NoWarn);CA1707;CA1861;CA5394;CA1515;CA2234;CA1812;xUnit1051</NoWarn>
+  </PropertyGroup>
+
+</Project>

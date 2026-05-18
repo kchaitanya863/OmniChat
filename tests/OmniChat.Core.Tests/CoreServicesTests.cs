@@ -1,4 +1,9 @@
+using System.Net;
+using System.Net.Http;
+using System.Text;
 using OmniChat.Core.Models;
+using OmniChat.Core.Providers;
+using OmniChat.Core.Security;
 using OmniChat.Core.Services;
 
 namespace OmniChat.Core.Tests;
@@ -131,5 +136,193 @@ public sealed class InMemoryChatRepositoryTests
 
         Assert.Equal(1, removed);
         Assert.Single(remaining);
+    }
+
+    [Fact]
+    public async Task GetSession_ReturnsSnapshot_NotLiveList()
+    {
+        var repository = new InMemoryChatRepository();
+        var created = await repository.CreateSessionAsync("Race test");
+        await repository.AddMessageAsync(created.Id, new ChatMessage("user", "one", DateTimeOffset.UtcNow));
+
+        var snapshot = await repository.GetSessionAsync(created.Id);
+        Assert.NotNull(snapshot);
+        Assert.Equal(1, snapshot!.MessageCount);
+
+        await repository.AddMessageAsync(created.Id, new ChatMessage("user", "two", DateTimeOffset.UtcNow));
+
+        // Snapshot frozen at point of read.
+        Assert.Equal(1, snapshot.MessageCount);
+
+        var fresh = await repository.GetSessionAsync(created.Id);
+        Assert.Equal(2, fresh!.MessageCount);
+    }
+}
+
+public sealed class SseHttpStreamReaderTests
+{
+    [Fact]
+    public async Task ReadDataPayloadsAsync_ConcatenatesMultiLine_StopsAtDone()
+    {
+        const string sse =
+            ": ping\n" +
+            "data: {\"a\":1}\n" +
+            "data: {\"b\":2}\n" +
+            "\n" +
+            "data: hello\n" +
+            "\n" +
+            "data: [DONE]\n" +
+            "\n" +
+            "data: should-not-appear\n\n";
+
+        using var response = new HttpResponseMessage(HttpStatusCode.OK)
+        {
+            Content = new StringContent(sse, Encoding.UTF8, "text/event-stream")
+        };
+
+        var payloads = new List<string>();
+        await foreach (var payload in SseHttpStreamReader.ReadDataPayloadsAsync(response, CancellationToken.None))
+        {
+            payloads.Add(payload);
+        }
+
+        Assert.Equal(2, payloads.Count);
+        Assert.Equal("{\"a\":1}\n{\"b\":2}", payloads[0]);
+        Assert.Equal("hello", payloads[1]);
+    }
+}
+
+public sealed class OpenAiProviderParserTests
+{
+    [Fact]
+    public void ParseChunk_ExtractsDelta()
+    {
+        const string json = """
+            {"choices":[{"index":0,"delta":{"content":"Hello"},"finish_reason":null}]}
+            """;
+
+        var chunk = OpenAiChatProvider.ParseChunk(json);
+
+        Assert.NotNull(chunk);
+        Assert.Equal("Hello", chunk!.Delta);
+        Assert.Null(chunk.FinishReason);
+    }
+
+    [Fact]
+    public void ParseChunk_ExtractsUsage_OnTerminalChunk()
+    {
+        const string json = """
+            {"choices":[{"index":0,"delta":{},"finish_reason":"stop"}],"usage":{"prompt_tokens":12,"completion_tokens":7}}
+            """;
+
+        var chunk = OpenAiChatProvider.ParseChunk(json);
+
+        Assert.NotNull(chunk);
+        Assert.Equal("stop", chunk!.FinishReason);
+        Assert.NotNull(chunk.Usage);
+        Assert.Equal(12, chunk.Usage!.InputTokens);
+        Assert.Equal(7, chunk.Usage.OutputTokens);
+    }
+
+    [Fact]
+    public void ParseChunk_ReturnsNull_OnEmptyOrInvalidJson()
+    {
+        Assert.Null(OpenAiChatProvider.ParseChunk(""));
+        Assert.Null(OpenAiChatProvider.ParseChunk("not-json"));
+    }
+}
+
+public sealed class AnthropicProviderParserTests
+{
+    [Fact]
+    public void ParseChunk_ExtractsContentBlockDeltaText()
+    {
+        const string json = """
+            {"type":"content_block_delta","index":0,"delta":{"type":"text_delta","text":"world"}}
+            """;
+
+        var (chunk, input, output) = AnthropicChatProvider.ParseChunk(json);
+
+        Assert.NotNull(chunk);
+        Assert.Equal("world", chunk!.Delta);
+        Assert.Equal(0, input);
+        Assert.Equal(0, output);
+    }
+
+    [Fact]
+    public void ParseChunk_ExtractsStopReason_AndOutputTokens()
+    {
+        const string json = """
+            {"type":"message_delta","delta":{"stop_reason":"end_turn"},"usage":{"output_tokens":42}}
+            """;
+
+        var (chunk, input, output) = AnthropicChatProvider.ParseChunk(json);
+
+        Assert.NotNull(chunk);
+        Assert.Equal("end_turn", chunk!.FinishReason);
+        Assert.Equal(0, input);
+        Assert.Equal(42, output);
+    }
+
+    [Fact]
+    public void ParseChunk_ExtractsInputTokens_OnMessageStart()
+    {
+        const string json = """
+            {"type":"message_start","message":{"id":"msg_1","usage":{"input_tokens":18,"output_tokens":0}}}
+            """;
+
+        var (chunk, input, output) = AnthropicChatProvider.ParseChunk(json);
+
+        Assert.Null(chunk);
+        Assert.Equal(18, input);
+        Assert.Equal(0, output);
+    }
+}
+
+public sealed class EchoChatProviderTests
+{
+    [Fact]
+    public async Task StreamAsync_EmitsTokens_AndUsageOnCompletion()
+    {
+        var provider = new EchoChatProvider();
+        var request = new ChatStreamRequest(
+            Messages: [new ChatMessage("user", "hi there", DateTimeOffset.UtcNow)],
+            Model: "echo",
+            ApiKey: string.Empty);
+
+        var deltas = new List<string>();
+        UsageStats? usage = null;
+        string? finish = null;
+
+        await foreach (var chunk in provider.StreamAsync(request, CancellationToken.None))
+        {
+            if (chunk.Delta is { Length: > 0 })
+            {
+                deltas.Add(chunk.Delta);
+            }
+            if (chunk.Usage is not null) usage = chunk.Usage;
+            if (chunk.FinishReason is not null) finish = chunk.FinishReason;
+        }
+
+        Assert.NotEmpty(deltas);
+        Assert.Contains("You said:", string.Concat(deltas), StringComparison.Ordinal);
+        Assert.Equal("stop", finish);
+        Assert.NotNull(usage);
+    }
+}
+
+public sealed class KeyFingerprintTests
+{
+    [Fact]
+    public void Compute_ProducesStableSha256Prefix()
+    {
+        var f1 = KeyFingerprint.Compute("sk-test-abcdef");
+        var f2 = KeyFingerprint.Compute("sk-test-abcdef");
+        var f3 = KeyFingerprint.Compute("sk-test-other");
+
+        Assert.StartsWith("sha256:", f1, StringComparison.Ordinal);
+        Assert.Equal(19, f1.Length);
+        Assert.Equal(f1, f2);
+        Assert.NotEqual(f1, f3);
     }
 }

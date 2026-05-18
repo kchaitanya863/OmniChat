@@ -1,0 +1,6 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/OmniChat.Core/OmniChat.Core.csproj" />
+    <Project Path="src/OmniChat.Maui/OmniChat.Maui.csproj" />
+  </Folder>
+</Solution>

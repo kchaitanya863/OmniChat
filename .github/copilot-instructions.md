@@ -4,7 +4,7 @@
 - Preserve **local-first BYOK** behavior: user data stays local by default, and no telemetry is enabled by default.
 - Keep this repository as a polished baseline for a premium privacy-first chat product.
 - Prefer secure defaults and explicit validation on all API boundaries.
-- Active milestone plan lives at `.claude/plans/search-the-entire-codebase-hidden-bonbon.md`. New work should map to a milestone or an explicit follow-up.
+- Active milestone plan lives at [`docs/ROADMAP.md`](../docs/ROADMAP.md). New work should map to a milestone or an explicit follow-up.
 
 ## Current implementation map
 - `src/OmniChat.Core`: domain library — models, services (chunking, token budgeting, embeddings, RAG, SSE parsing), provider abstractions (`Providers/`), security primitives (`Security/`).

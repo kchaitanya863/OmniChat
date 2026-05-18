@@ -6,7 +6,7 @@ OmniChat unifies access to multiple LLM providers (OpenAI, Anthropic, Azure Open
 
 ## Status
 
-Active roadmap lives at [`.claude/plans/search-the-entire-codebase-hidden-bonbon.md`](./.claude/plans/search-the-entire-codebase-hidden-bonbon.md). All eleven milestones have shipped foundational code; remaining work is described inline as `TODO` comments where production hardening is still needed.
+Active spec + roadmap lives at [`docs/ROADMAP.md`](docs/ROADMAP.md). All eleven milestones have shipped foundational code; remaining work is described inline as `TODO` comments where production hardening is still needed.
 
 | Milestone | Status |
 |-----------|--------|

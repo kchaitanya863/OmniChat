@@ -152,7 +152,7 @@ Future audits: run axe-core at M10. Add a Lighthouse CI step at the same time.
 
 ## Surfaces marked for frontend-design treatment
 
-The plan ([locked roadmap](../../.claude/plans/search-the-entire-codebase-hidden-bonbon.md)) commits four surfaces to the `frontend-design` skill for distinctive treatment:
+The plan ([locked roadmap](ROADMAP.md)) commits four surfaces to the `frontend-design` skill for distinctive treatment:
 
 1. **Onboarding carousel** (M8) — three-panel intro: *Your Data, Your Device* → *BYOK* → *Local Superpowers*. Pure SVG illustrations, scroll-snap.
 2. **Empty chat state** (M4) — sigil + headline + four suggestion chips. Already stubbed in [`render.js → renderEmptyMessages`](../src/OmniChat.Web/wwwroot/js/render.js); frontend-design polish at M4.

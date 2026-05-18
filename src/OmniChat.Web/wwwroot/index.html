@@ -1,717 +1,285 @@
 <!doctype html>
-<html lang="en">
+<html lang="en" data-theme="dark">
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>OmniChat</title>
-  <style>
-    :root {
-      color-scheme: dark;
-      --bg: #090c12;
-      --panel: #111826;
-      --card: #161f30;
-      --line: #28364f;
-      --text: #e6edf3;
-      --muted: #8da2c0;
-      --brand: #66b3ff;
-      --assistant: #1f8f6435;
-      --user: #3262d235;
-      --danger: #ff6b6b;
-    }
+  <meta name="description" content="OmniChat — local-first, BYOK AI chat client." />
+  <title>OmniChat — Local-first BYOK chat</title>
 
-    * { box-sizing: border-box; }
+  <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin />
 
-    body {
-      margin: 0;
-      min-height: 100vh;
-      font-family: Inter, Segoe UI, system-ui, sans-serif;
-      background:
-        radial-gradient(circle at 10% 10%, #1c2b46 0%, transparent 35%),
-        radial-gradient(circle at 90% 90%, #1a4634 0%, transparent 30%),
-        var(--bg);
-      color: var(--text);
-    }
+  <link rel="stylesheet" href="/styles/tokens.css" />
+  <link rel="stylesheet" href="/styles/base.css" />
+  <link rel="stylesheet" href="/styles/components.css" />
+  <link rel="stylesheet" href="/styles/layout.css" />
 
-    .layout {
-      display: grid;
-      grid-template-columns: 340px 1fr;
-      min-height: 100vh;
-      gap: 18px;
-      padding: 18px;
-    }
+  <!--
+    Markdown rendering. Loaded from jsDelivr; pinned versions.
+    SRI hashes are deferred (track in DESIGN_SYSTEM.md). If these scripts fail to
+    load, render.js falls back to textContent — never raw innerHTML. Safe by default.
+  -->
+  <script src="https://cdn.jsdelivr.net/npm/marked@14.1.4/marked.min.js" crossorigin="anonymous" defer></script>
+  <script src="https://cdn.jsdelivr.net/npm/dompurify@3.2.5/dist/purify.min.js" crossorigin="anonymous" defer></script>
 
-    .panel {
-      background: linear-gradient(180deg, #111a2a 0%, #0f1724 100%);
-      border: 1px solid var(--line);
-      border-radius: 18px;
-      box-shadow: 0 24px 60px rgba(0, 0, 0, 0.35);
-    }
-
-    .sidebar {
-      padding: 18px;
-      display: grid;
-      grid-template-rows: auto auto 1fr;
-      gap: 14px;
-      overflow: hidden;
-    }
-
-    .brand {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 8px;
-    }
-
-    .logo {
-      font-weight: 800;
-      letter-spacing: 0.2px;
-      font-size: 1.06rem;
-    }
-
-    .pill {
-      border: 1px solid #2b4768;
-      color: #bcd8ff;
-      background: #132239;
-      padding: 5px 10px;
-      border-radius: 999px;
-      font-size: 0.72rem;
-      font-weight: 600;
-    }
-
-    .card {
-      background: var(--card);
-      border: 1px solid var(--line);
-      border-radius: 14px;
-      padding: 12px;
-    }
-
-    .heading {
-      margin: 0 0 8px;
-      font-size: 0.95rem;
-      font-weight: 700;
-      color: #dbe8ff;
-    }
-
-    .subtle {
-      margin: 0;
-      color: var(--muted);
-      font-size: 0.86rem;
-      line-height: 1.4;
-    }
-
-    .sessions-list {
-      overflow: auto;
-      display: grid;
-      gap: 8px;
-      align-content: start;
-      padding-right: 4px;
-    }
-
-    .settings-grid {
-      display: grid;
-      gap: 8px;
-      margin-top: 8px;
-    }
-
-    .settings-grid label {
-      font-size: 0.76rem;
-      color: var(--muted);
-      display: grid;
-      gap: 4px;
-    }
-
-    .button-grid {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 8px;
-      margin-top: 8px;
-    }
-
-    .session {
-      cursor: pointer;
-      transition: border-color 120ms ease, transform 120ms ease;
-    }
-
-    .session:hover {
-      border-color: #3a5a85;
-      transform: translateY(-1px);
-    }
-
-    .session.active { border-color: var(--brand); }
-
-    .session-title {
-      font-weight: 600;
-      margin: 0;
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
-    }
-
-    .meta {
-      font-size: 0.76rem;
-      color: var(--muted);
-      margin-top: 6px;
-    }
-
-    .chat {
-      padding: 18px;
-      display: grid;
-      grid-template-rows: auto 1fr auto;
-      gap: 14px;
-      min-height: 0;
-    }
-
-    .chat-header {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 8px;
-      padding-bottom: 4px;
-    }
-
-    .chat-title {
-      margin: 0;
-      font-size: 1.05rem;
-      font-weight: 700;
-    }
-
-    .messages {
-      background: #0f1726;
-      border: 1px solid var(--line);
-      border-radius: 14px;
-      padding: 12px;
-      overflow: auto;
-      display: grid;
-      gap: 10px;
-      align-content: start;
-      min-height: 0;
-    }
-
-    .empty {
-      color: var(--muted);
-      border: 1px dashed #324766;
-      border-radius: 12px;
-      padding: 14px;
-      text-align: center;
-      font-size: 0.9rem;
-    }
-
-    .msg {
-      border: 1px solid #30425f;
-      border-radius: 12px;
-      padding: 10px 12px;
-      white-space: pre-wrap;
-      overflow-wrap: anywhere;
-    }
-
-    .msg.user { background: var(--user); }
-    .msg.assistant { background: var(--assistant); }
-
-    .msg-role {
-      font-size: 0.78rem;
-      text-transform: uppercase;
-      letter-spacing: 0.08em;
-      font-weight: 700;
-      color: #d6e9ff;
-      margin-bottom: 6px;
-    }
-
-    .msg-content {
-      margin: 0;
-      line-height: 1.42;
-      color: #f3f6fb;
-    }
-
-    input, textarea, select, button {
-      width: 100%;
-      border-radius: 11px;
-      border: 1px solid #355078;
-      background: #0c1422;
-      color: var(--text);
-      padding: 10px;
-      font: inherit;
-    }
-
-    input:focus, textarea:focus, select:focus {
-      outline: 2px solid #3e7fc7;
-      outline-offset: 1px;
-      border-color: #5b95d5;
-    }
-
-    textarea { resize: vertical; min-height: 88px; }
-
-    button {
-      cursor: pointer;
-      border: none;
-      background: linear-gradient(180deg, #2a78d5 0%, #1f63b4 100%);
-      color: #fff;
-      font-weight: 700;
-      transition: transform 120ms ease, filter 120ms ease;
-      min-width: 122px;
-    }
-
-    button:hover:enabled {
-      transform: translateY(-1px);
-      filter: brightness(1.06);
-    }
-
-    button:disabled {
-      opacity: 0.6;
-      cursor: not-allowed;
-    }
-
-    .composer-grid {
-      display: grid;
-      grid-template-columns: 1fr auto;
-      gap: 8px;
-      margin-top: 8px;
-      align-items: end;
-    }
-
-    .status-bar {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 8px;
-      margin-bottom: 8px;
-      color: var(--muted);
-      font-size: 0.82rem;
-    }
-
-    .status-dot {
-      width: 9px;
-      height: 9px;
-      border-radius: 50%;
-      background: #4ade80;
-      box-shadow: 0 0 10px #4ade80a6;
-      display: inline-block;
-      margin-right: 6px;
-    }
-
-    .error {
-      color: #ffd2d2;
-      background: #5f1d2a;
-      border: 1px solid #8d3b4b;
-      border-radius: 10px;
-      padding: 8px 10px;
-      margin-top: 8px;
-      font-size: 0.84rem;
-      display: none;
-    }
-
-    .hint {
-      color: var(--muted);
-      font-size: 0.75rem;
-      margin-top: 6px;
-    }
-
-    .summary {
-      margin-top: 8px;
-      font-size: 0.76rem;
-      color: var(--muted);
-      line-height: 1.4;
-      border: 1px dashed #334b6d;
-      border-radius: 10px;
-      padding: 8px;
-    }
-
-    @media (max-width: 1024px) {
-      .layout { grid-template-columns: 1fr; }
-      .sidebar { max-height: 42vh; }
-    }
-  </style>
+  <script type="module" src="/js/app.js" defer></script>
 </head>
 <body>
-  <div class="layout">
-    <aside class="panel sidebar">
-      <div class="brand">
-        <div class="logo">OmniChat</div>
-        <span class="pill">Local-first BYOK</span>
+  <a class="skip-link" href="#messages">Skip to messages</a>
+
+  <div class="app">
+    <aside class="panel sidebar" aria-label="Sessions and providers">
+      <div class="brand-row">
+        <div class="brand-mark">
+          <svg aria-hidden="true" focusable="false"><use href="/icons/sprite.svg#i-sigil"></use></svg>
+          <span>OmniChat</span>
+        </div>
+        <div class="row-tight">
+          <button id="openSettingsBtn" class="icon-btn" type="button" aria-label="Open settings">
+            <svg aria-hidden="true" focusable="false"><use href="/icons/sprite.svg#i-settings"></use></svg>
+          </button>
+          <button id="themeToggleBtn" class="icon-btn theme-toggle" type="button" aria-label="Toggle theme">
+            <svg class="sun" aria-hidden="true" focusable="false"><use href="/icons/sprite.svg#i-sun"></use></svg>
+            <svg class="moon" aria-hidden="true" focusable="false"><use href="/icons/sprite.svg#i-moon"></use></svg>
+          </button>
+        </div>
+      </div>
+
+      <label class="sr-only" for="sessionSearch">Search sessions</label>
+      <div class="row-tight">
+        <input id="sessionSearch" type="search" placeholder="Search sessions (⌘+/)" autocomplete="off" />
       </div>
 
       <div class="card">
-        <h2 class="heading">New session</h2>
-        <p class="subtle">Create dedicated conversations per task while keeping local control of chat data.</p>
-        <input id="newSessionTitle" aria-label="New session title" placeholder="Session title" value="New Session" />
-        <button id="createSessionBtn" style="margin-top: 8px;">Create Session</button>
+        <h2>New session</h2>
+        <p class="subtle">Dedicated conversations per task, kept local to this machine.</p>
+        <label>
+          <span class="sr-only">New session title</span>
+          <input id="newSessionTitle" placeholder="Session title" value="New Session" autocomplete="off" />
+        </label>
+        <button id="createSessionBtn" class="btn primary" type="button">
+          <svg aria-hidden="true" focusable="false"><use href="/icons/sprite.svg#i-plus"></use></svg>
+          Create Session
+        </button>
       </div>
 
       <div class="card">
-        <h2 class="heading">RAG & Storage Controls</h2>
-        <p class="subtle">Tune chunking strategy and storage management behavior.</p>
-        <div class="settings-grid">
+        <div class="row-tight split">
+          <h2>Providers <span id="providerCountPill" class="pill mint">0</span></h2>
+        </div>
+        <p class="subtle">Bring your own keys. Pick which provider streams the next reply.</p>
+
+        <label>
+          Active provider
+          <select id="providerSelect" aria-label="Active provider"></select>
+        </label>
+        <div id="providerFingerprint" class="key-fingerprint"></div>
+
+        <div class="button-row">
+          <button id="toggleProviderFormBtn" class="btn success" type="button">
+            <svg aria-hidden="true" focusable="false"><use href="/icons/sprite.svg#i-key"></use></svg>
+            Add Provider
+          </button>
+          <button id="deleteProviderBtn" class="btn ghost" type="button" aria-label="Delete active provider">
+            <svg aria-hidden="true" focusable="false"><use href="/icons/sprite.svg#i-trash"></use></svg>
+          </button>
+        </div>
+
+        <div id="providerForm" class="inline-form">
           <label>
-            Chunking strategy
-            <select id="chunkingStrategy" aria-label="Chunking strategy">
-              <option value="focused">Focused (smaller chunks)</option>
-              <option value="balanced">Balanced (default)</option>
-              <option value="broad">Broad (larger chunks)</option>
+            Display name
+            <input id="newProviderName" placeholder="Work OpenAI" autocomplete="off" />
+          </label>
+          <label>
+            Provider type
+            <select id="newProviderType">
+              <option value="OpenAi">OpenAI</option>
+              <option value="Anthropic">Anthropic</option>
+              <option value="AzureOpenAi">Azure OpenAI</option>
+              <option value="Groq">Groq</option>
+              <option value="Custom">Custom (Echo)</option>
             </select>
           </label>
           <label>
-            Storage mode
-            <select id="storageMode" aria-label="Storage mode">
-              <option value="ephemeral">Ephemeral (session memory)</option>
-              <option value="managed">Managed (with retention policy)</option>
-            </select>
+            Model
+            <input id="newProviderModel" placeholder="gpt-4o-mini, claude-opus-4-7, ..." autocomplete="off" />
           </label>
           <label>
-            Keep latest sessions
-            <input id="keepLatestSessions" type="number" min="0" max="1000" value="10" />
+            API key (stored encrypted)
+            <input id="newProviderKey" type="password" autocomplete="off" placeholder="sk-..." />
           </label>
+          <label>
+            Base URL (optional)
+            <input id="newProviderBaseUrl" placeholder="https://api.example.com/v1" autocomplete="off" />
+          </label>
+          <label>
+            System prompt (optional)
+            <textarea id="newProviderSystemPrompt" rows="2" placeholder="You are a precise..."></textarea>
+          </label>
+          <div class="button-row">
+            <button id="saveProviderBtn" class="btn primary" type="button">Save</button>
+            <button id="cancelProviderBtn" class="btn ghost" type="button">Cancel</button>
+          </div>
         </div>
-        <button id="saveSettingsBtn" style="margin-top: 8px;">Save Controls</button>
-        <div class="button-grid">
-          <button id="cleanupLatestBtn" style="background: linear-gradient(180deg, #3f6fb0 0%, #31578a 100%);">Trim Storage</button>
-          <button id="clearAllBtn" style="background: linear-gradient(180deg, #c95757 0%, #9e3838 100%);">Clear All</button>
-        </div>
-        <button id="refreshStorageBtn" style="margin-top: 8px; background: linear-gradient(180deg, #35598f 0%, #28446d 100%);">Refresh Summary</button>
-        <div id="storageSummary" class="summary">Storage summary will appear here.</div>
       </div>
 
-      <div id="sessions" class="sessions-list" aria-label="Sessions list"></div>
+      <nav id="sessionsList" class="sessions-pane" aria-label="Sessions"></nav>
     </aside>
 
     <main class="panel chat">
-      <div class="chat-header">
-        <h1 class="chat-title">Unified Assistant Workspace</h1>
-        <div class="meta"><span class="status-dot"></span><span id="statusText">Ready</span></div>
-      </div>
-
-      <section id="messages" class="messages" aria-live="polite"></section>
-
-      <section class="card">
-        <div class="status-bar">
-          <span>Prompt Composer</span>
-          <span id="activeSessionLabel">No session selected</span>
+      <header class="chat-header">
+        <h1>
+          <svg aria-hidden="true" focusable="false" width="16" height="16"><use href="/icons/sprite.svg#i-sparkles"></use></svg>
+          <span>Unified Assistant Workspace</span>
+        </h1>
+        <div class="header-meta">
+          <span class="status-dot" id="statusDot" aria-hidden="true"></span>
+          <span id="statusText">Ready</span>
+          <span id="activeSessionLabel" class="pill">No session selected</span>
         </div>
-        <textarea id="prompt" placeholder="Type your prompt... (Ctrl/Cmd + Enter to send)"></textarea>
-        <div class="composer-grid">
-          <input id="model" aria-label="Model" placeholder="Model (e.g. gpt-4o-mini)" value="demo-local-model" />
-          <button id="sendBtn">Send</button>
+      </header>
+
+      <section id="messages" class="messages" aria-live="polite" aria-label="Conversation messages"></section>
+
+      <section class="composer" aria-label="Prompt composer">
+        <div class="composer-toolbar">
+          <span class="left">Prompt</span>
+          <span class="right row-tight">
+            <button id="voiceBtn" class="icon-btn" type="button" aria-label="Voice input (⌘+⇧+M)" title="Voice input">
+              <svg aria-hidden="true" focusable="false"><use href="/icons/sprite.svg#i-sparkles"></use></svg>
+            </button>
+            <span class="key-fingerprint">⌘+Enter send · ⌘+K focus · ⌘+⇧+K palette</span>
+          </span>
         </div>
-        <div id="errorBox" class="error" role="alert"></div>
-        <div class="hint">No telemetry by default. This baseline keeps session data local to the running app process and is designed to evolve to durable local storage.</div>
+        <label class="sr-only" for="prompt">Prompt</label>
+        <textarea id="prompt" placeholder="Ask anything. Stays local."></textarea>
+        <div class="composer-actions">
+          <input id="modelInput" class="model-input" placeholder="Model override (optional)" autocomplete="off" />
+          <button id="sendBtn" class="btn primary" type="button">
+            <svg aria-hidden="true" focusable="false"><use href="/icons/sprite.svg#i-send"></use></svg>
+            Send
+          </button>
+        </div>
+        <div id="errorBox" class="alert" role="alert"></div>
       </section>
     </main>
   </div>
 
-  <script>
-    let selectedSessionId = null;
-    let loading = false;
+  <aside id="settingsDrawer" class="drawer" aria-label="Settings" hidden>
+    <header class="row-tight split" style="margin-bottom: var(--space-3);">
+      <h2>Settings</h2>
+      <button id="closeSettingsBtn" class="icon-btn" type="button" aria-label="Close settings">
+        <svg aria-hidden="true" focusable="false"><use href="/icons/sprite.svg#i-x"></use></svg>
+      </button>
+    </header>
 
-    const sessionsEl = document.getElementById('sessions');
-    const messagesEl = document.getElementById('messages');
-    const statusTextEl = document.getElementById('statusText');
-    const activeSessionLabelEl = document.getElementById('activeSessionLabel');
-    const errorBoxEl = document.getElementById('errorBox');
-    const sendButtonEl = document.getElementById('sendBtn');
-    const createSessionButtonEl = document.getElementById('createSessionBtn');
-    const saveSettingsButtonEl = document.getElementById('saveSettingsBtn');
-    const cleanupLatestButtonEl = document.getElementById('cleanupLatestBtn');
-    const clearAllButtonEl = document.getElementById('clearAllBtn');
-    const refreshStorageButtonEl = document.getElementById('refreshStorageBtn');
-    const chunkingStrategyEl = document.getElementById('chunkingStrategy');
-    const storageModeEl = document.getElementById('storageMode');
-    const keepLatestSessionsEl = document.getElementById('keepLatestSessions');
-    const storageSummaryEl = document.getElementById('storageSummary');
+    <section class="card">
+      <h2>RAG &amp; Storage</h2>
+      <p class="subtle">Tune chunking + retention. Real on-device embeddings activate when the ONNX model is downloaded.</p>
+      <label>
+        Chunking strategy
+        <select id="chunkingStrategy">
+          <option value="focused">Focused (smaller chunks)</option>
+          <option value="balanced">Balanced</option>
+          <option value="broad">Broad (larger chunks)</option>
+        </select>
+      </label>
+      <label>
+        Storage mode
+        <select id="storageMode">
+          <option value="ephemeral">Ephemeral</option>
+          <option value="managed">Managed (retention)</option>
+        </select>
+      </label>
+      <label>
+        Keep latest sessions
+        <input id="keepLatestSessions" type="number" min="0" max="1000" value="10" />
+      </label>
+      <button id="saveSettingsBtn" class="btn secondary" type="button">Save Controls</button>
+      <div class="button-row">
+        <button id="cleanupLatestBtn" class="btn secondary" type="button">Trim</button>
+        <button id="clearAllBtn" class="btn danger" type="button">Clear All</button>
+      </div>
+      <button id="refreshStorageBtn" class="btn ghost" type="button">
+        <svg aria-hidden="true" focusable="false"><use href="/icons/sprite.svg#i-refresh"></use></svg>
+        Refresh
+      </button>
+      <div id="storageSummary" class="summary">Storage summary will appear here.</div>
+    </section>
 
-    function setStatus(text, busy = false) {
-      statusTextEl.textContent = text;
-      loading = busy;
-      sendButtonEl.disabled = busy;
-      createSessionButtonEl.disabled = busy;
-      saveSettingsButtonEl.disabled = busy;
-      cleanupLatestButtonEl.disabled = busy;
-      clearAllButtonEl.disabled = busy;
-      refreshStorageButtonEl.disabled = busy;
-    }
+    <section class="card" style="margin-top: var(--space-3);">
+      <h2>Export</h2>
+      <p class="subtle">Download the current session as Markdown or JSON. Data leaves only when you click.</p>
+      <div class="button-row">
+        <button id="exportMdBtn" class="btn ghost" type="button">Markdown</button>
+        <button id="exportJsonBtn" class="btn ghost" type="button">JSON</button>
+      </div>
+    </section>
+  </aside>
 
-    function setError(message) {
-      if (!message) {
-        errorBoxEl.style.display = 'none';
-        errorBoxEl.textContent = '';
-        return;
-      }
+  <div id="onboardingShell" class="onboarding-shell" hidden>
+    <div class="onboarding">
+      <div id="onboardingScroller" class="onboarding-scroller">
+        <section class="onboarding-panel panel-1" data-index="0">
+          <svg class="illus" viewBox="0 0 240 240" aria-hidden="true">
+            <defs>
+              <radialGradient id="g1" cx="50%" cy="40%" r="60%">
+                <stop offset="0%" stop-color="currentColor" stop-opacity="0.35" />
+                <stop offset="100%" stop-color="currentColor" stop-opacity="0" />
+              </radialGradient>
+            </defs>
+            <circle cx="120" cy="120" r="110" fill="url(#g1)" />
+            <rect x="60" y="78" width="120" height="92" rx="14" fill="none" stroke="currentColor" stroke-width="3" />
+            <rect x="78" y="92" width="84" height="6" rx="3" fill="currentColor" opacity="0.45" />
+            <rect x="78" y="106" width="60" height="6" rx="3" fill="currentColor" opacity="0.30" />
+            <rect x="78" y="120" width="84" height="6" rx="3" fill="currentColor" opacity="0.20" />
+            <circle cx="120" cy="156" r="10" fill="currentColor" />
+          </svg>
+          <h2>Your Data, Your Device</h2>
+          <p>Chat history, documents, and embeddings stay on this machine by default. No telemetry. No cloud persistence. Just a local-first AI workspace you control.</p>
+        </section>
 
-      errorBoxEl.textContent = message;
-      errorBoxEl.style.display = 'block';
-    }
+        <section class="onboarding-panel panel-2" data-index="1">
+          <svg class="illus" viewBox="0 0 240 240" aria-hidden="true">
+            <circle cx="120" cy="120" r="100" fill="none" stroke="currentColor" stroke-width="2" opacity="0.25" />
+            <circle cx="120" cy="120" r="60" fill="none" stroke="currentColor" stroke-width="2" opacity="0.4" />
+            <path d="M70 120 L120 80 L170 120 L120 160 Z" fill="none" stroke="currentColor" stroke-width="3" />
+            <circle cx="120" cy="120" r="14" fill="currentColor" />
+            <path d="M118 100 L122 100 L122 140 L118 140 Z M104 134 L136 134 L136 138 L104 138 Z" fill="var(--surface-0)" />
+          </svg>
+          <h2>Bring Your Own Key</h2>
+          <p>Plug in OpenAI, Anthropic, Azure, Groq, or a custom endpoint. Keys are encrypted at rest with platform-grade data protection. You see a fingerprint — never the raw key.</p>
+        </section>
 
-    async function fetchJson(url, options) {
-      const response = await fetch(url, options);
-      if (!response.ok) {
-        const text = await response.text();
-        throw new Error(text || `Request failed (${response.status})`);
-      }
+        <section class="onboarding-panel panel-3" data-index="2">
+          <svg class="illus" viewBox="0 0 240 240" aria-hidden="true">
+            <rect x="60" y="40" width="120" height="160" rx="22" fill="none" stroke="currentColor" stroke-width="3" />
+            <circle cx="120" cy="120" r="42" fill="none" stroke="currentColor" stroke-width="2.5" />
+            <path d="M108 108 L132 120 L108 132 Z" fill="currentColor" />
+            <circle cx="86" cy="80" r="3" fill="currentColor" />
+            <circle cx="154" cy="80" r="3" fill="currentColor" />
+            <circle cx="86" cy="160" r="3" fill="currentColor" />
+            <circle cx="154" cy="160" r="3" fill="currentColor" />
+            <path d="M86 80 L120 120 L154 80 M86 160 L120 120 L154 160" stroke="currentColor" stroke-width="1.5" opacity="0.5" fill="none" />
+          </svg>
+          <h2>Local Superpowers</h2>
+          <p>On-device RAG, full-text search, branching conversations, and MCP tool integration. The power of a hosted chat client without sending your context anywhere.</p>
+        </section>
+      </div>
+      <footer class="onboarding-footer">
+        <button id="onboardingSkipBtn" class="btn ghost" type="button">Skip</button>
+        <div id="onboardingDots" class="onboarding-dots" role="tablist">
+          <button class="onboarding-dot active" data-target="0" role="tab" aria-label="Panel 1"></button>
+          <button class="onboarding-dot" data-target="1" role="tab" aria-label="Panel 2"></button>
+          <button class="onboarding-dot" data-target="2" role="tab" aria-label="Panel 3"></button>
+        </div>
+        <button id="onboardingNextBtn" class="btn primary" type="button">Next</button>
+      </footer>
+    </div>
+  </div>
 
-      return response.json();
-    }
-
-    function formatStorageSummary(summary) {
-      return [
-        `Sessions: ${summary.sessionCount}`,
-        `Messages: ${summary.messageCount}`,
-        `Approx chars: ${summary.approximateContentChars}`,
-        `Storage mode: ${summary.storageMode}`,
-        `Retention keep latest: ${summary.keepLatestSessions}`
-      ].join(' · ');
-    }
-
-    function createTextElement(tag, className, value) {
-      const element = document.createElement(tag);
-      if (className) {
-        element.className = className;
-      }
-      element.textContent = value;
-      return element;
-    }
-
-    function renderEmptyMessage() {
-      messagesEl.innerHTML = '';
-      messagesEl.appendChild(createTextElement('div', 'empty', 'Start a new session and send a message to begin.'));
-    }
-
-    async function loadSessions() {
-      const sessions = await fetchJson('/api/sessions');
-      sessionsEl.innerHTML = '';
-
-      if (sessions.length === 0) {
-        const empty = createTextElement('div', 'card subtle', 'No sessions yet. Create one to get started.');
-        sessionsEl.appendChild(empty);
-        selectedSessionId = null;
-        activeSessionLabelEl.textContent = 'No session selected';
-        renderEmptyMessage();
-        return;
-      }
-
-      sessions.forEach(session => {
-        const card = document.createElement('button');
-        card.type = 'button';
-        card.className = `card session${session.id === selectedSessionId ? ' active' : ''}`;
-
-        const title = createTextElement('p', 'session-title', session.title || 'Untitled Session');
-        const meta = createTextElement('div', 'meta', `${session.messageCount} messages`);
-        card.append(title, meta);
-
-        card.onclick = async () => {
-          if (loading) {
-            return;
-          }
-
-          selectedSessionId = session.id;
-          await refreshAll();
-        };
-
-        sessionsEl.appendChild(card);
-      });
-
-      if (!selectedSessionId) {
-        selectedSessionId = sessions[0].id;
-      }
-
-      const active = sessions.find(s => s.id === selectedSessionId) ?? sessions[0];
-      activeSessionLabelEl.textContent = `Active: ${active.title}`;
-    }
-
-    async function loadSession(id) {
-      if (!id) {
-        renderEmptyMessage();
-        return;
-      }
-
-      const session = await fetchJson(`/api/sessions/${id}`);
-      messagesEl.innerHTML = '';
-
-      if (!session.messages || session.messages.length === 0) {
-        messagesEl.appendChild(createTextElement('div', 'empty', 'This session has no messages yet.'));
-        return;
-      }
-
-      session.messages.forEach(msg => {
-        const card = document.createElement('article');
-        card.className = `msg ${msg.role === 'assistant' ? 'assistant' : 'user'}`;
-
-        const role = createTextElement('div', 'msg-role', msg.role === 'assistant' ? 'Assistant' : 'You');
-        const content = createTextElement('p', 'msg-content', msg.content || '');
-        const ts = createTextElement('div', 'meta', new Date(msg.timestamp).toLocaleString());
-
-        card.append(role, content, ts);
-        messagesEl.appendChild(card);
-      });
-
-      messagesEl.scrollTop = messagesEl.scrollHeight;
-    }
-
-    async function loadSettings() {
-      const settings = await fetchJson('/api/settings');
-      chunkingStrategyEl.value = settings.chunkingStrategy || 'balanced';
-      storageModeEl.value = settings.storageMode || 'ephemeral';
-      keepLatestSessionsEl.value = settings.keepLatestSessions ?? 10;
-    }
-
-    async function loadStorageSummary() {
-      const summary = await fetchJson('/api/storage/summary');
-      storageSummaryEl.textContent = formatStorageSummary(summary);
-    }
-
-    async function refreshAll() {
-      setStatus('Syncing...', true);
-      setError('');
-
-      try {
-        await loadSessions();
-        await loadSession(selectedSessionId);
-        await loadSettings();
-        await loadStorageSummary();
-        setStatus('Ready', false);
-      } catch (error) {
-        setStatus('Error', false);
-        setError(error.message || 'Unexpected error');
-      }
-    }
-
-    async function saveSettings() {
-      if (loading) {
-        return;
-      }
-
-      const keepLatestSessions = Number.parseInt(keepLatestSessionsEl.value, 10);
-      setStatus('Saving controls...', true);
-      setError('');
-
-      try {
-        await fetchJson('/api/settings', {
-          method: 'POST',
-          headers: { 'content-type': 'application/json' },
-          body: JSON.stringify({
-            chunkingStrategy: chunkingStrategyEl.value,
-            storageMode: storageModeEl.value,
-            keepLatestSessions
-          })
-        });
-
-        await loadStorageSummary();
-        setStatus('Ready', false);
-      } catch (error) {
-        setStatus('Ready', false);
-        setError(error.message || 'Failed to save controls');
-      }
-    }
-
-    async function cleanupStorage(mode) {
-      if (loading) {
-        return;
-      }
-
-      const keepLatestSessions = Number.parseInt(keepLatestSessionsEl.value, 10);
-      setStatus(mode === 'clear_all' ? 'Clearing storage...' : 'Trimming storage...', true);
-      setError('');
-
-      try {
-        await fetchJson('/api/storage/cleanup', {
-          method: 'POST',
-          headers: { 'content-type': 'application/json' },
-          body: JSON.stringify({ mode, keepLatestSessions })
-        });
-
-        await refreshAll();
-      } catch (error) {
-        setStatus('Ready', false);
-        setError(error.message || 'Storage cleanup failed');
-      }
-    }
-
-    async function refreshStorageSummary() {
-      if (loading) {
-        return;
-      }
-
-      setStatus('Refreshing summary...', true);
-      setError('');
-
-      try {
-        await loadStorageSummary();
-        setStatus('Ready', false);
-      } catch (error) {
-        setStatus('Ready', false);
-        setError(error.message || 'Failed to refresh summary');
-      }
-    }
-
-    async function createSession() {
-      if (loading) {
-        return;
-      }
-
-      const title = document.getElementById('newSessionTitle').value.trim() || 'New Session';
-      setStatus('Creating session...', true);
-      setError('');
-
-      try {
-        const response = await fetchJson('/api/sessions', {
-          method: 'POST',
-          headers: { 'content-type': 'application/json' },
-          body: JSON.stringify({ title })
-        });
-
-        selectedSessionId = response.id;
-        await refreshAll();
-      } catch (error) {
-        setStatus('Ready', false);
-        setError(error.message || 'Failed to create session');
-      }
-    }
-
-    async function sendMessage() {
-      if (loading || !selectedSessionId) {
-        return;
-      }
-
-      const promptEl = document.getElementById('prompt');
-      const modelEl = document.getElementById('model');
-      const content = promptEl.value.trim();
-
-      if (!content) {
-        setError('Please enter a prompt before sending.');
-        return;
-      }
-
-      const model = modelEl.value.trim() || 'demo-local-model';
-      setStatus('Generating response...', true);
-      setError('');
-
-      try {
-        await fetchJson(`/api/sessions/${selectedSessionId}/messages`, {
-          method: 'POST',
-          headers: { 'content-type': 'application/json' },
-          body: JSON.stringify({ content, providerId: 'local-byok', model })
-        });
-
-        promptEl.value = '';
-        await refreshAll();
-      } catch (error) {
-        setStatus('Ready', false);
-        setError(error.message || 'Failed to send message');
-      }
-    }
-
-    createSessionButtonEl.onclick = createSession;
-    sendButtonEl.onclick = sendMessage;
-    saveSettingsButtonEl.onclick = saveSettings;
-    refreshStorageButtonEl.onclick = refreshStorageSummary;
-    cleanupLatestButtonEl.onclick = () => cleanupStorage('keep_latest');
-    clearAllButtonEl.onclick = () => cleanupStorage('clear_all');
-
-    document.getElementById('prompt').addEventListener('keydown', (event) => {
-      const isModifier = event.ctrlKey || event.metaKey;
-      if (isModifier && event.key === 'Enter') {
-        event.preventDefault();
-        sendMessage();
-      }
-    });
-
-    refreshAll();
-  </script>
+  <div id="cmdShell" class="cmd-shell" role="dialog" aria-label="Command palette" hidden>
+    <input id="cmdInput" class="cmd-input" type="text" placeholder="Type a command or search..." autocomplete="off" />
+    <ul id="cmdList" class="cmd-list" role="listbox"></ul>
+  </div>
 </body>
 </html>

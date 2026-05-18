@@ -77,22 +77,29 @@ def capture(base_url: str, output_dir: Path, session_title: str, prompt: str, mo
         page.goto(base_url, wait_until="networkidle")
         page.screenshot(path=str(home), full_page=True)
 
+        # M6: storage controls live in the settings drawer; open it first.
+        page.click("#openSettingsBtn")
+        page.wait_for_selector("#chunkingStrategy", state="visible")
         page.select_option("#chunkingStrategy", "focused")
         page.select_option("#storageMode", "managed")
         page.fill("#keepLatestSessions", "5")
         page.click("#saveSettingsBtn")
         page.wait_for_timeout(500)
         page.screenshot(path=str(controls), full_page=True)
+        page.click("#closeSettingsBtn")
+        page.wait_for_timeout(200)
 
         page.fill("#newSessionTitle", session_title)
         page.click("#createSessionBtn")
         page.wait_for_timeout(600)
         page.screenshot(path=str(sessions), full_page=True)
 
-        page.fill("#model", model)
+        page.fill("#modelInput", model)
         page.fill("#prompt", prompt)
         page.click("#sendBtn")
-        page.wait_for_timeout(1400)
+        # Wait for streaming to complete: Echo provider emits ~10 tokens at 15ms each
+        # plus markdown render + final-message append. 2.5s is comfortable.
+        page.wait_for_timeout(2500)
         page.screenshot(path=str(chat), full_page=True)
 
         browser.close()

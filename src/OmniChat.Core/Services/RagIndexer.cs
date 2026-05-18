@@ -5,9 +5,9 @@ namespace OmniChat.Core.Services;
 public sealed class RagIndexer
 {
     private readonly TextChunker _chunker;
-    private readonly LocalEmbeddingService _embeddingService;
+    private readonly IEmbeddingService _embeddingService;
 
-    public RagIndexer(TextChunker chunker, LocalEmbeddingService embeddingService)
+    public RagIndexer(TextChunker chunker, IEmbeddingService embeddingService)
     {
         _chunker = chunker;
         _embeddingService = embeddingService;

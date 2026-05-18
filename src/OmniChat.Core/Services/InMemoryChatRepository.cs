@@ -15,13 +15,14 @@ public sealed class InMemoryChatRepository : IChatRepository
         };
 
         _sessions[session.Id] = session;
-        return Task.FromResult(session);
+        return Task.FromResult(session.Snapshot());
     }
 
     public Task<IReadOnlyList<ChatSession>> GetSessionsAsync(CancellationToken cancellationToken = default)
     {
         IReadOnlyList<ChatSession> sessions = _sessions.Values
-            .OrderByDescending(static s => s.Messages.LastOrDefault()?.Timestamp ?? DateTimeOffset.MinValue)
+            .Select(static s => s.Snapshot())
+            .OrderByDescending(static s => s.LastMessage?.Timestamp ?? DateTimeOffset.MinValue)
             .ThenBy(static s => s.Title, StringComparer.OrdinalIgnoreCase)
             .ToArray();
 
@@ -30,23 +31,58 @@ public sealed class InMemoryChatRepository : IChatRepository
 
     public Task<ChatSession?> GetSessionAsync(string sessionId, CancellationToken cancellationToken = default)
     {
-        _sessions.TryGetValue(sessionId, out var session);
-        return Task.FromResult(session);
+        if (_sessions.TryGetValue(sessionId, out var session))
+        {
+            return Task.FromResult<ChatSession?>(session.Snapshot());
+        }
+
+        return Task.FromResult<ChatSession?>(null);
     }
 
     public Task AddMessageAsync(string sessionId, ChatMessage message, CancellationToken cancellationToken = default)
     {
         if (_sessions.TryGetValue(sessionId, out var session))
         {
-            lock (session.Messages)
-            {
-                session.Messages.Add(message);
-            }
-
+            session.AppendMessage(message);
             return Task.CompletedTask;
         }
 
         throw new KeyNotFoundException($"Chat session '{sessionId}' was not found.");
+    }
+
+    public Task<int> RemoveMessagesFromAsync(string sessionId, string messageId, CancellationToken cancellationToken = default)
+    {
+        if (_sessions.TryGetValue(sessionId, out var session))
+        {
+            return Task.FromResult(session.RemoveFrom(messageId));
+        }
+
+        throw new KeyNotFoundException($"Chat session '{sessionId}' was not found.");
+    }
+
+    public Task<bool> RenameSessionAsync(string sessionId, string title, CancellationToken cancellationToken = default)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(title);
+
+        if (_sessions.TryGetValue(sessionId, out var session))
+        {
+            session.Title = title.Trim();
+            return Task.FromResult(true);
+        }
+
+        return Task.FromResult(false);
+    }
+
+    public Task<bool> UpdateSessionAsync(string sessionId, bool? pinned, string? folderId, CancellationToken cancellationToken = default)
+    {
+        if (!_sessions.TryGetValue(sessionId, out var session))
+        {
+            return Task.FromResult(false);
+        }
+
+        if (pinned.HasValue) session.Pinned = pinned.Value;
+        if (folderId is not null) session.FolderId = string.IsNullOrWhiteSpace(folderId) ? null : folderId;
+        return Task.FromResult(true);
     }
 
     public Task<int> DeleteAllSessionsAsync(CancellationToken cancellationToken = default)
@@ -56,20 +92,28 @@ public sealed class InMemoryChatRepository : IChatRepository
         return Task.FromResult(deleted);
     }
 
-    public async Task<int> TrimToLatestSessionsAsync(int keepLatestCount, CancellationToken cancellationToken = default)
+    public Task<int> TrimToLatestSessionsAsync(int keepLatestCount, CancellationToken cancellationToken = default)
     {
         if (keepLatestCount < 0)
         {
             throw new ArgumentOutOfRangeException(nameof(keepLatestCount));
         }
 
-        var sessions = await GetSessionsAsync(cancellationToken);
-        var toDelete = sessions.Skip(keepLatestCount).ToArray();
-        foreach (var session in toDelete)
+        var ordered = _sessions.Values
+            .Select(static s => (s.Id, Timestamp: s.LastMessage?.Timestamp ?? DateTimeOffset.MinValue, s.Title))
+            .OrderByDescending(static t => t.Timestamp)
+            .ThenBy(static t => t.Title, StringComparer.OrdinalIgnoreCase)
+            .ToArray();
+
+        var removed = 0;
+        foreach (var (id, _, _) in ordered.Skip(keepLatestCount))
         {
-            _sessions.TryRemove(session.Id, out _);
+            if (_sessions.TryRemove(id, out _))
+            {
+                removed++;
+            }
         }
 
-        return toDelete.Length;
+        return Task.FromResult(removed);
     }
 }

@@ -1,0 +1,285 @@
+<!doctype html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="description" content="OmniChat — local-first, BYOK AI chat client." />
+  <title>OmniChat — Local-first BYOK chat</title>
+
+  <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin />
+
+  <link rel="stylesheet" href="/styles/tokens.css" />
+  <link rel="stylesheet" href="/styles/base.css" />
+  <link rel="stylesheet" href="/styles/components.css" />
+  <link rel="stylesheet" href="/styles/layout.css" />
+
+  <!--
+    Markdown rendering. Loaded from jsDelivr; pinned versions.
+    SRI hashes are deferred (track in DESIGN_SYSTEM.md). If these scripts fail to
+    load, render.js falls back to textContent — never raw innerHTML. Safe by default.
+  -->
+  <script src="https://cdn.jsdelivr.net/npm/marked@14.1.4/marked.min.js" crossorigin="anonymous" defer></script>
+  <script src="https://cdn.jsdelivr.net/npm/dompurify@3.2.5/dist/purify.min.js" crossorigin="anonymous" defer></script>
+
+  <script type="module" src="/js/app.js" defer></script>
+</head>
+<body>
+  <a class="skip-link" href="#messages">Skip to messages</a>
+
+  <div class="app">
+    <aside class="panel sidebar" aria-label="Sessions and providers">
+      <div class="brand-row">
+        <div class="brand-mark">
+          <svg aria-hidden="true" focusable="false"><use href="/icons/sprite.svg#i-sigil"></use></svg>
+          <span>OmniChat</span>
+        </div>
+        <div class="row-tight">
+          <button id="openSettingsBtn" class="icon-btn" type="button" aria-label="Open settings">
+            <svg aria-hidden="true" focusable="false"><use href="/icons/sprite.svg#i-settings"></use></svg>
+          </button>
+          <button id="themeToggleBtn" class="icon-btn theme-toggle" type="button" aria-label="Toggle theme">
+            <svg class="sun" aria-hidden="true" focusable="false"><use href="/icons/sprite.svg#i-sun"></use></svg>
+            <svg class="moon" aria-hidden="true" focusable="false"><use href="/icons/sprite.svg#i-moon"></use></svg>
+          </button>
+        </div>
+      </div>
+
+      <label class="sr-only" for="sessionSearch">Search sessions</label>
+      <div class="row-tight">
+        <input id="sessionSearch" type="search" placeholder="Search sessions (⌘+/)" autocomplete="off" />
+      </div>
+
+      <div class="card">
+        <h2>New session</h2>
+        <p class="subtle">Dedicated conversations per task, kept local to this machine.</p>
+        <label>
+          <span class="sr-only">New session title</span>
+          <input id="newSessionTitle" placeholder="Session title" value="New Session" autocomplete="off" />
+        </label>
+        <button id="createSessionBtn" class="btn primary" type="button">
+          <svg aria-hidden="true" focusable="false"><use href="/icons/sprite.svg#i-plus"></use></svg>
+          Create Session
+        </button>
+      </div>
+
+      <div class="card">
+        <div class="row-tight split">
+          <h2>Providers <span id="providerCountPill" class="pill mint">0</span></h2>
+        </div>
+        <p class="subtle">Bring your own keys. Pick which provider streams the next reply.</p>
+
+        <label>
+          Active provider
+          <select id="providerSelect" aria-label="Active provider"></select>
+        </label>
+        <div id="providerFingerprint" class="key-fingerprint"></div>
+
+        <div class="button-row">
+          <button id="toggleProviderFormBtn" class="btn success" type="button">
+            <svg aria-hidden="true" focusable="false"><use href="/icons/sprite.svg#i-key"></use></svg>
+            Add Provider
+          </button>
+          <button id="deleteProviderBtn" class="btn ghost" type="button" aria-label="Delete active provider">
+            <svg aria-hidden="true" focusable="false"><use href="/icons/sprite.svg#i-trash"></use></svg>
+          </button>
+        </div>
+
+        <div id="providerForm" class="inline-form">
+          <label>
+            Display name
+            <input id="newProviderName" placeholder="Work OpenAI" autocomplete="off" />
+          </label>
+          <label>
+            Provider type
+            <select id="newProviderType">
+              <option value="OpenAi">OpenAI</option>
+              <option value="Anthropic">Anthropic</option>
+              <option value="AzureOpenAi">Azure OpenAI</option>
+              <option value="Groq">Groq</option>
+              <option value="Custom">Custom (Echo)</option>
+            </select>
+          </label>
+          <label>
+            Model
+            <input id="newProviderModel" placeholder="gpt-4o-mini, claude-opus-4-7, ..." autocomplete="off" />
+          </label>
+          <label>
+            API key (stored encrypted)
+            <input id="newProviderKey" type="password" autocomplete="off" placeholder="sk-..." />
+          </label>
+          <label>
+            Base URL (optional)
+            <input id="newProviderBaseUrl" placeholder="https://api.example.com/v1" autocomplete="off" />
+          </label>
+          <label>
+            System prompt (optional)
+            <textarea id="newProviderSystemPrompt" rows="2" placeholder="You are a precise..."></textarea>
+          </label>
+          <div class="button-row">
+            <button id="saveProviderBtn" class="btn primary" type="button">Save</button>
+            <button id="cancelProviderBtn" class="btn ghost" type="button">Cancel</button>
+          </div>
+        </div>
+      </div>
+
+      <nav id="sessionsList" class="sessions-pane" aria-label="Sessions"></nav>
+    </aside>
+
+    <main class="panel chat">
+      <header class="chat-header">
+        <h1>
+          <svg aria-hidden="true" focusable="false" width="16" height="16"><use href="/icons/sprite.svg#i-sparkles"></use></svg>
+          <span>Unified Assistant Workspace</span>
+        </h1>
+        <div class="header-meta">
+          <span class="status-dot" id="statusDot" aria-hidden="true"></span>
+          <span id="statusText">Ready</span>
+          <span id="activeSessionLabel" class="pill">No session selected</span>
+        </div>
+      </header>
+
+      <section id="messages" class="messages" aria-live="polite" aria-label="Conversation messages"></section>
+
+      <section class="composer" aria-label="Prompt composer">
+        <div class="composer-toolbar">
+          <span class="left">Prompt</span>
+          <span class="right row-tight">
+            <button id="voiceBtn" class="icon-btn" type="button" aria-label="Voice input (⌘+⇧+M)" title="Voice input">
+              <svg aria-hidden="true" focusable="false"><use href="/icons/sprite.svg#i-sparkles"></use></svg>
+            </button>
+            <span class="key-fingerprint">⌘+Enter send · ⌘+K focus · ⌘+⇧+K palette</span>
+          </span>
+        </div>
+        <label class="sr-only" for="prompt">Prompt</label>
+        <textarea id="prompt" placeholder="Ask anything. Stays local."></textarea>
+        <div class="composer-actions">
+          <input id="modelInput" class="model-input" placeholder="Model override (optional)" autocomplete="off" />
+          <button id="sendBtn" class="btn primary" type="button">
+            <svg aria-hidden="true" focusable="false"><use href="/icons/sprite.svg#i-send"></use></svg>
+            Send
+          </button>
+        </div>
+        <div id="errorBox" class="alert" role="alert"></div>
+      </section>
+    </main>
+  </div>
+
+  <aside id="settingsDrawer" class="drawer" aria-label="Settings" hidden>
+    <header class="row-tight split" style="margin-bottom: var(--space-3);">
+      <h2>Settings</h2>
+      <button id="closeSettingsBtn" class="icon-btn" type="button" aria-label="Close settings">
+        <svg aria-hidden="true" focusable="false"><use href="/icons/sprite.svg#i-x"></use></svg>
+      </button>
+    </header>
+
+    <section class="card">
+      <h2>RAG &amp; Storage</h2>
+      <p class="subtle">Tune chunking + retention. Real on-device embeddings activate when the ONNX model is downloaded.</p>
+      <label>
+        Chunking strategy
+        <select id="chunkingStrategy">
+          <option value="focused">Focused (smaller chunks)</option>
+          <option value="balanced">Balanced</option>
+          <option value="broad">Broad (larger chunks)</option>
+        </select>
+      </label>
+      <label>
+        Storage mode
+        <select id="storageMode">
+          <option value="ephemeral">Ephemeral</option>
+          <option value="managed">Managed (retention)</option>
+        </select>
+      </label>
+      <label>
+        Keep latest sessions
+        <input id="keepLatestSessions" type="number" min="0" max="1000" value="10" />
+      </label>
+      <button id="saveSettingsBtn" class="btn secondary" type="button">Save Controls</button>
+      <div class="button-row">
+        <button id="cleanupLatestBtn" class="btn secondary" type="button">Trim</button>
+        <button id="clearAllBtn" class="btn danger" type="button">Clear All</button>
+      </div>
+      <button id="refreshStorageBtn" class="btn ghost" type="button">
+        <svg aria-hidden="true" focusable="false"><use href="/icons/sprite.svg#i-refresh"></use></svg>
+        Refresh
+      </button>
+      <div id="storageSummary" class="summary">Storage summary will appear here.</div>
+    </section>
+
+    <section class="card" style="margin-top: var(--space-3);">
+      <h2>Export</h2>
+      <p class="subtle">Download the current session as Markdown or JSON. Data leaves only when you click.</p>
+      <div class="button-row">
+        <button id="exportMdBtn" class="btn ghost" type="button">Markdown</button>
+        <button id="exportJsonBtn" class="btn ghost" type="button">JSON</button>
+      </div>
+    </section>
+  </aside>
+
+  <div id="onboardingShell" class="onboarding-shell" hidden>
+    <div class="onboarding">
+      <div id="onboardingScroller" class="onboarding-scroller">
+        <section class="onboarding-panel panel-1" data-index="0">
+          <svg class="illus" viewBox="0 0 240 240" aria-hidden="true">
+            <defs>
+              <radialGradient id="g1" cx="50%" cy="40%" r="60%">
+                <stop offset="0%" stop-color="currentColor" stop-opacity="0.35" />
+                <stop offset="100%" stop-color="currentColor" stop-opacity="0" />
+              </radialGradient>
+            </defs>
+            <circle cx="120" cy="120" r="110" fill="url(#g1)" />
+            <rect x="60" y="78" width="120" height="92" rx="14" fill="none" stroke="currentColor" stroke-width="3" />
+            <rect x="78" y="92" width="84" height="6" rx="3" fill="currentColor" opacity="0.45" />
+            <rect x="78" y="106" width="60" height="6" rx="3" fill="currentColor" opacity="0.30" />
+            <rect x="78" y="120" width="84" height="6" rx="3" fill="currentColor" opacity="0.20" />
+            <circle cx="120" cy="156" r="10" fill="currentColor" />
+          </svg>
+          <h2>Your Data, Your Device</h2>
+          <p>Chat history, documents, and embeddings stay on this machine by default. No telemetry. No cloud persistence. Just a local-first AI workspace you control.</p>
+        </section>
+
+        <section class="onboarding-panel panel-2" data-index="1">
+          <svg class="illus" viewBox="0 0 240 240" aria-hidden="true">
+            <circle cx="120" cy="120" r="100" fill="none" stroke="currentColor" stroke-width="2" opacity="0.25" />
+            <circle cx="120" cy="120" r="60" fill="none" stroke="currentColor" stroke-width="2" opacity="0.4" />
+            <path d="M70 120 L120 80 L170 120 L120 160 Z" fill="none" stroke="currentColor" stroke-width="3" />
+            <circle cx="120" cy="120" r="14" fill="currentColor" />
+            <path d="M118 100 L122 100 L122 140 L118 140 Z M104 134 L136 134 L136 138 L104 138 Z" fill="var(--surface-0)" />
+          </svg>
+          <h2>Bring Your Own Key</h2>
+          <p>Plug in OpenAI, Anthropic, Azure, Groq, or a custom endpoint. Keys are encrypted at rest with platform-grade data protection. You see a fingerprint — never the raw key.</p>
+        </section>
+
+        <section class="onboarding-panel panel-3" data-index="2">
+          <svg class="illus" viewBox="0 0 240 240" aria-hidden="true">
+            <rect x="60" y="40" width="120" height="160" rx="22" fill="none" stroke="currentColor" stroke-width="3" />
+            <circle cx="120" cy="120" r="42" fill="none" stroke="currentColor" stroke-width="2.5" />
+            <path d="M108 108 L132 120 L108 132 Z" fill="currentColor" />
+            <circle cx="86" cy="80" r="3" fill="currentColor" />
+            <circle cx="154" cy="80" r="3" fill="currentColor" />
+            <circle cx="86" cy="160" r="3" fill="currentColor" />
+            <circle cx="154" cy="160" r="3" fill="currentColor" />
+            <path d="M86 80 L120 120 L154 80 M86 160 L120 120 L154 160" stroke="currentColor" stroke-width="1.5" opacity="0.5" fill="none" />
+          </svg>
+          <h2>Local Superpowers</h2>
+          <p>On-device RAG, full-text search, branching conversations, and MCP tool integration. The power of a hosted chat client without sending your context anywhere.</p>
+        </section>
+      </div>
+      <footer class="onboarding-footer">
+        <button id="onboardingSkipBtn" class="btn ghost" type="button">Skip</button>
+        <div id="onboardingDots" class="onboarding-dots" role="tablist">
+          <button class="onboarding-dot active" data-target="0" role="tab" aria-label="Panel 1"></button>
+          <button class="onboarding-dot" data-target="1" role="tab" aria-label="Panel 2"></button>
+          <button class="onboarding-dot" data-target="2" role="tab" aria-label="Panel 3"></button>
+        </div>
+        <button id="onboardingNextBtn" class="btn primary" type="button">Next</button>
+      </footer>
+    </div>
+  </div>
+
+  <div id="cmdShell" class="cmd-shell" role="dialog" aria-label="Command palette" hidden>
+    <input id="cmdInput" class="cmd-input" type="text" placeholder="Type a command or search..." autocomplete="off" />
+    <ul id="cmdList" class="cmd-list" role="listbox"></ul>
+  </div>
+</body>
+</html>

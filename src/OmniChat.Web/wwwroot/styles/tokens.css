@@ -1,0 +1,143 @@
+/* ============================================================
+   OmniChat Design Tokens
+   Single source of truth. Add tokens here, reference everywhere.
+   See docs/DESIGN_SYSTEM.md for usage rules.
+   ============================================================ */
+
+:root {
+  color-scheme: light dark;
+
+  /* ---- Surface scale (4 steps + base bg)
+     Dark mode: deep navy → lifted card → tooltip ceiling
+     Light mode: paper → card → menu → emphasis */
+  --bg-base:       light-dark(#f6f7fb, #090c12);
+  --surface-0:     light-dark(#ffffff, #0f1724);
+  --surface-1:     light-dark(#f1f3f8, #161f30);
+  --surface-2:     light-dark(#e8ecf3, #1c2740);
+  --surface-3:     light-dark(#dbe0ea, #243153);
+
+  /* Translucent panel for backdrop-filter glass */
+  --glass:         light-dark(rgba(255,255,255,0.62), rgba(22,31,48,0.55));
+
+  /* ---- Borders */
+  --line:          light-dark(#dde2ec, #28364f);
+  --line-strong:   light-dark(#b8c1d2, #3a4d70);
+
+  /* ---- Text */
+  --text-strong:   light-dark(#0c1726, #f2f6fc);
+  --text-base:     light-dark(#1c2740, #e6edf3);
+  --text-muted:    light-dark(#5b6a83, #8da2c0);
+  --text-subtle:   light-dark(#7b8aa3, #6f8198);
+  --text-on-brand: #ffffff;
+
+  /* ---- Brand + accents
+     Three accent jobs (one role each — never decorative):
+     mint   = local / secure / streaming
+     amber  = BYOK key needed / cost / warn
+     violet = RAG / retrieval / citation */
+  --brand:         light-dark(#3262d2, #66b3ff);
+  --brand-soft:    light-dark(#dbe7ff, #1c2c4d);
+  --brand-strong:  light-dark(#1f4cab, #93caff);
+
+  --mint:          light-dark(#1f8f64, #5eead4);
+  --mint-soft:     light-dark(#d9f5ea, #102d27);
+  --amber:         light-dark(#b07418, #f5b971);
+  --amber-soft:    light-dark(#fbeacd, #2a1f0e);
+  --violet:        light-dark(#6d4ad6, #a78bfa);
+  --violet-soft:   light-dark(#e6dffa, #1b1633);
+
+  --danger:        light-dark(#c44757, #ff6b6b);
+  --danger-soft:   light-dark(#fde2e6, #3b1d22);
+
+  /* ---- Semantic tokens (map to accents) */
+  --success:       var(--mint);
+  --success-soft:  var(--mint-soft);
+  --warn:          var(--amber);
+  --warn-soft:     var(--amber-soft);
+  --info:          var(--brand);
+  --info-soft:     var(--brand-soft);
+
+  /* ---- Role-message tints */
+  --bubble-user:      light-dark(rgba(50,98,210,0.10), rgba(50,98,210,0.20));
+  --bubble-assistant: light-dark(rgba(31,143,100,0.10), rgba(31,143,100,0.20));
+
+  /* ---- Backdrop signatures (kept subtle in light mode) */
+  --aurora-1: light-dark(rgba(50,98,210,0.06), rgba(28,43,70,0.55));
+  --aurora-2: light-dark(rgba(31,143,100,0.05), rgba(26,70,52,0.45));
+
+  /* ---- Typography */
+  --font-ui:   "Inter", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --font-mono: ui-monospace, "JetBrains Mono", SFMono-Regular, Menlo, Consolas, monospace;
+
+  --text-xs:    0.72rem;
+  --text-sm:    0.81rem;
+  --text-base:  0.875rem;
+  --text-md:    1rem;
+  --text-lg:    1.125rem;
+  --text-xl:    1.375rem;
+  --text-2xl:   1.75rem;
+  --text-3xl:   2.25rem;
+
+  --leading-tight: 1.25;
+  --leading-base:  1.5;
+  --leading-relaxed: 1.65;
+
+  --tracking-wide:    0.04em;
+  --tracking-tight:  -0.01em;
+
+  /* ---- Spacing (4px scale) */
+  --space-0:  0;
+  --space-1:  0.25rem;
+  --space-2:  0.5rem;
+  --space-3:  0.75rem;
+  --space-4:  1rem;
+  --space-5:  1.25rem;
+  --space-6:  1.5rem;
+  --space-8:  2rem;
+  --space-10: 2.5rem;
+  --space-12: 3rem;
+  --space-16: 4rem;
+  --space-20: 5rem;
+
+  /* ---- Radius */
+  --radius-xs:   4px;
+  --radius-sm:   6px;
+  --radius-md:   10px;
+  --radius-lg:   14px;
+  --radius-xl:   18px;
+  --radius-2xl:  24px;
+  --radius-pill: 999px;
+
+  /* ---- Shadows (soft, layered) */
+  --shadow-sm: 0 1px 2px light-dark(rgba(20,30,50,0.04), rgba(0,0,0,0.20));
+  --shadow-md: 0 6px 18px light-dark(rgba(20,30,50,0.06), rgba(0,0,0,0.28));
+  --shadow-lg: 0 24px 60px light-dark(rgba(20,30,50,0.10), rgba(0,0,0,0.40));
+  --shadow-focus: 0 0 0 3px var(--brand-soft);
+
+  /* ---- Motion
+     Confirm interactions; never decorate.
+     Three easings, never invent ad hoc curves. */
+  --ease-out-soft: cubic-bezier(0.2, 0.8, 0.2, 1);
+  --ease-spring:   cubic-bezier(0.34, 1.56, 0.64, 1);
+  --ease-stream:   linear;
+
+  --duration-fast: 120ms;
+  --duration-base: 200ms;
+  --duration-slow: 320ms;
+
+  /* ---- Z-index scale */
+  --z-base:    0;
+  --z-elevate: 10;
+  --z-sticky:  20;
+  --z-toast:   60;
+  --z-modal:   80;
+  --z-max:     999;
+
+  /* ---- Composer + layout sizes */
+  --sidebar-width: 340px;
+  --max-msg-width: 760px;
+}
+
+/* Hard overrides — the toggle script flips these on <html data-theme="..."> */
+:root[data-theme="light"] { color-scheme: light; }
+:root[data-theme="dark"]  { color-scheme: dark; }

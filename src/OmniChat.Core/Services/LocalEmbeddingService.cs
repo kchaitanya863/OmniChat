@@ -1,0 +1,37 @@
+namespace OmniChat.Core.Services;
+
+public sealed class LocalEmbeddingService : IEmbeddingService
+{
+    // Placeholder deterministic embedding for offline / first-run fallback.
+    // OnnxEmbeddingService replaces this in production when the model file is present.
+    public int Dimensions => 26;
+
+    public bool IsReady => true;
+
+    public IReadOnlyList<float> Embed(string text)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(text);
+
+        var vector = new float[26];
+        foreach (var ch in text.ToLowerInvariant())
+        {
+            if (ch is >= 'a' and <= 'z')
+            {
+                vector[ch - 'a'] += 1;
+            }
+        }
+
+        var magnitude = (float)Math.Sqrt(vector.Sum(v => v * v));
+        if (magnitude == 0)
+        {
+            return vector;
+        }
+
+        for (var i = 0; i < vector.Length; i++)
+        {
+            vector[i] /= magnitude;
+        }
+
+        return vector;
+    }
+}
